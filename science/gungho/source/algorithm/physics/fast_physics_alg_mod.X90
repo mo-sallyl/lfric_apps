@@ -265,7 +265,7 @@ contains
     if (cloud_call_b4_conv) then
       call cld_alg( dtheta, mr,                                              &
                     theta_latest, exner, rho,                                &
-                    derived_fields, turbulence_fields,                       &
+                    derived_fields, orography_fields, turbulence_fields,     &
                     cloud_fields, convection_fields,                         &
                     theta, mr_n,                                             &
                     clock%get_step(), dt, .true. )

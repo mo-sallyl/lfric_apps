@@ -42,7 +42,10 @@ subroutine pc2_initiation_ctl (                                                &
   sskew, svar_turb, svar_bm,                                                   &
 
 ! Water tracer structure
-  wtrac                                                                        &
+  wtrac,                                                                       &
+
+! Ancillary fields for ENNUF cloud NN
+  orog_2d, sd_orog_2d, fland_2d, gridsize_2d                                  &
  )
 
 use yomhook,               only: lhook, dr_hook
@@ -65,6 +68,7 @@ use pc2_checks2_mod, only: pc2_checks2
 use pc2_hom_arcld_mod, only: pc2_hom_arcld
 use pc2_initiate_mod, only: pc2_initiate
 use pc2_bm_initiate_mod, only: pc2_bm_initiate
+use ennuf_cld_mod, only: ennuf_cld
 use mphys_inputs_mod,   only: l_mcr_qcf2
 
 use free_tracers_inputs_mod, only: n_wtrac
@@ -236,6 +240,16 @@ logical, intent(in) :: calculate_increments
 ! fields. Hence, it is not possible to run with water tracers if
 ! l_cloud_call_b4_conv = T.)
 type(wtrac_type), intent(in out) :: wtrac(n_wtrac)
+
+real(kind=real_umphys), intent(in) ::                                          &
+  fland_2d(pdims%i_start:pdims%i_end,                                          &
+     pdims%j_start:pdims%j_end),                                         &
+  sd_orog_2d(pdims%i_start:pdims%i_end,                                        &
+       pdims%j_start:pdims%j_end),                                       &
+  orog_2d(pdims%i_start:pdims%i_end,                                           &
+    pdims%j_start:pdims%j_end),                                          &
+  gridsize_2d(pdims%i_start:pdims%i_end,                                       &
+        pdims%j_start:pdims%j_end)
 
 ! Local variables
 
@@ -524,6 +538,10 @@ if (i_cld_area == acf_cusack) then
      cf_area,t,cf,cfl,cff,q,qcl,qcf,                                           &
      l_mixing_ratio)
 end if    ! i_cld_area
+
+call ennuf_cld(p_theta_levels, t, q, qcl, qcf, cf, cfl, cff,                   &
+               orog_2d, sd_orog_2d, fland_2d, gridsize_2d,                     &
+               .false., .false.)
 
 if (calculate_increments) then
   ! Update work array to hold net increment from the above routines

@@ -29,7 +29,7 @@ private
 
 type, public, extends(kernel_type) :: pc2_initiation_kernel_type
   private
-  type(arg_type) :: meta_args(40) = (/                                   &
+  type(arg_type) :: meta_args(42) = (/                                   &
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! mv_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! ml_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! mi_wth
@@ -47,6 +47,8 @@ type, public, extends(kernel_type) :: pc2_initiation_kernel_type
        arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! zh
        arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! zhsc
        arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! inv_depth
+      arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! sd_orog_2d
+      arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! dA_2d
        arg_type(GH_FIELD, GH_INTEGER,GH_READ,ANY_DISCONTINUOUS_SPACE_9), & ! bl_type_ind
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! tau_dec_bm
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! tau_hom_bm
@@ -156,6 +158,8 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
                                 zh,                                &
                                 zhsc,                              &
                                 inv_depth,                         &
+                                sd_orog_2d,                        &
+                                dA_2d,                             &
                                 bl_type_ind,                       &
                                 tau_dec_bm,                        &
                                 tau_hom_bm,                        &
@@ -240,6 +244,8 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
     real(kind=r_def), intent(in), dimension(undf_2d)  :: zh
     real(kind=r_def), intent(in), dimension(undf_2d)  :: zhsc
     real(kind=r_def), intent(in), dimension(undf_2d)  :: inv_depth
+    real(kind=r_def), intent(in), dimension(undf_2d)  :: sd_orog_2d
+    real(kind=r_def), intent(in), dimension(undf_2d)  :: dA_2d
     integer(kind=i_def), intent(in), dimension(undf_bl) :: bl_type_ind
 
     real(kind=r_def), intent(in), dimension(undf_2d) :: zlcl_mixed
@@ -280,7 +286,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
          svar_turb_out, svar_bm_out, qcf2_work, qcf2_incr
 
     real(r_um), dimension(seg_len,1) :: zh_in, zhsc_in, dzh_in, bl_type_7_in,  &
-         p_star, zlcl_mix
+          p_star, zlcl_mix, orog_2d, sd_orog_in, fland_2d, gridsize_2d
 
     real(r_um), dimension(seg_len,1,nlayers+1) :: p_rho_levels
 
@@ -304,6 +310,14 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
     do i = 1, seg_len
       l_cumulus(i,1) = (cumulus(map_2d(1,i)) == 1_i_def)
       zlcl_mix(i,1) = zlcl_mixed(map_2d(1,i))
+      orog_2d(i,1) = height_wth(map_wth(1,i)+0) - planet_radius
+      sd_orog_in(i,1) = sd_orog_2d(map_2d(1,i))
+      gridsize_2d(i,1) = sqrt(max(dA_2d(map_2d(1,i)), 0.0_r_def))
+      if (orog_2d(i,1) > 1.0_r_um .or. sd_orog_in(i,1) > 1.0e-6_r_um) then
+        fland_2d(i,1) = 1.0_r_um
+      else
+        fland_2d(i,1) = 0.0_r_um
+      end if
       do k = 0, nlayers
         r_theta_levels(i,1,k) = height_wth(map_wth(1,i)+k) + planet_radius
       end do
@@ -483,7 +497,11 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
                             sskew_out,                     &
                             svar_turb_out,                 &
                             svar_bm_out,                   &
-                            wtrac)
+                            wtrac,                         &
+                            orog_2d,                       &
+                            sd_orog_in,                    &
+                            fland_2d,                      &
+                            gridsize_2d)
 
     ! Recast back to LFRic space
     do k = 1, nlayers
