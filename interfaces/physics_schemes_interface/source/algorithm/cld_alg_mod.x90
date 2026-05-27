@@ -55,6 +55,7 @@ contains
   !>@param[in]     exner             (in)     Exner Pressure in w3 space
   !>@param[in]     rho               (in)     Density in w3 space
   !>@param[in]     derived_fields    (in)     Group of derived fields
+  !>@param[in]     orography_fields  (in)     Fields for orographic scheme
   !>@param[in]     turbulence_fields (in)     Fields for turbulence scheme
   !>@param[in]     cloud_fields      (in,out) Fields for cloud scheme
   !>@param[in]     convection_fields (in)     Fields from convection scheme
@@ -63,7 +64,8 @@ contains
   !>@param[in]     dt                (in)     Timestep length
   !>@param[in]     step              (in)     Timestep
   subroutine cld_alg(theta_inc, mr, theta, exner, rho,         &
-                     derived_fields, turbulence_fields,        &
+                     derived_fields, orography_fields,         &
+                     turbulence_fields,                        &
                      cloud_fields, convection_fields,          &
                      theta_n, mr_n, step, dt, call_b4_conv)
 
@@ -73,6 +75,7 @@ contains
     implicit none
 
     type( field_collection_type ), intent(in) :: derived_fields
+    type( field_collection_type ), intent(in) :: orography_fields
     type( field_collection_type ), intent(in) :: turbulence_fields
     type( field_collection_type ), intent(in) :: cloud_fields
     type( field_collection_type ), intent(in) :: convection_fields
@@ -243,6 +246,7 @@ contains
                                mr_n,                & ! IN    Start of timestep
                                theta_n,             & ! IN    Start of timestep
                                derived_fields,      & ! IN
+                               orography_fields,    & ! IN
                                turbulence_fields,   &
                                cloud_fields,        & ! INOUT
                                sskew_bm, svar_bm,   &
