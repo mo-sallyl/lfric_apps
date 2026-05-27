@@ -29,7 +29,7 @@ private
 
 type, public, extends(kernel_type) :: pc2_initiation_kernel_type
   private
-  type(arg_type) :: meta_args(40) = (/                                   &
+  type(arg_type) :: meta_args(42) = (/                                   &
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! mv_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! ml_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! mi_wth
@@ -47,6 +47,8 @@ type, public, extends(kernel_type) :: pc2_initiation_kernel_type
        arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! zh
        arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! zhsc
        arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! inv_depth
+      arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! sd_orog
+      arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! dA_2d
        arg_type(GH_FIELD, GH_INTEGER,GH_READ,ANY_DISCONTINUOUS_SPACE_9), & ! bl_type_ind
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! tau_dec_bm
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! tau_hom_bm
@@ -102,6 +104,8 @@ contains
 !> @param[in]     zh             Mixed-layer height
 !> @param[in]     zhsc           Decoupled layer height
 !> @param[in]     inv_depth      Depth of BL top inversion layer
+!> @param[in]     sd_orog        Sub-grid orographic standard deviation
+!> @param[in]     dA_2d          Horizontal cell area
 !> @param[in]     bl_type_ind    Diagnosed BL types
 !> @param[in]     tau_dec_bm     Decorrelation time scale in wth
 !> @param[in]     tau_hom_bm     Homogenisation time scale in wth
@@ -156,6 +160,8 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
                                 zh,                                &
                                 zhsc,                              &
                                 inv_depth,                         &
+                                sd_orog,                           &
+                                dA_2d,                             &
                                 bl_type_ind,                       &
                                 tau_dec_bm,                        &
                                 tau_hom_bm,                        &
@@ -240,6 +246,8 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
     real(kind=r_def), intent(in), dimension(undf_2d)  :: zh
     real(kind=r_def), intent(in), dimension(undf_2d)  :: zhsc
     real(kind=r_def), intent(in), dimension(undf_2d)  :: inv_depth
+    real(kind=r_def), intent(in), dimension(undf_2d)  :: sd_orog
+    real(kind=r_def), intent(in), dimension(undf_2d)  :: dA_2d
     integer(kind=i_def), intent(in), dimension(undf_bl) :: bl_type_ind
 
     real(kind=r_def), intent(in), dimension(undf_2d) :: zlcl_mixed
