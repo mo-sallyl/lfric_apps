@@ -53,6 +53,7 @@ contains
                                  theta_n,           &
                                  derived_fields,    &
                                  orography_fields,  &
+                                 surface_fields,    &
                                  turbulence_fields, &
                                  cloud_fields,      &
                                  sskew_bm, svar_bm, &
@@ -75,6 +76,7 @@ contains
 
     type( field_collection_type ), intent(in) :: derived_fields
     type( field_collection_type ), intent(in) :: orography_fields
+    type( field_collection_type ), intent(in) :: surface_fields
     type( field_collection_type ), intent(in) :: turbulence_fields
     type( field_collection_type ), intent(in) :: cloud_fields
 
@@ -116,6 +118,7 @@ contains
     type( field_type ), pointer :: height_wth => null()
     type( field_type ), pointer :: sd_orog    => null()
     type( field_type ), pointer :: dA_2d      => null()
+    type( field_type ), pointer :: surf_interp => null()
 
     type( mesh_type ),  pointer :: mesh => null()
     integer( kind=i_def ) :: ncells
@@ -137,6 +140,7 @@ contains
     call cloud_fields%get_field('tau_mph_bm', tau_mph_bm)
 
     call orography_fields%get_field('sd_orog', sd_orog)
+    call surface_fields%get_field('surf_interp', surf_interp)
 
     call turbulence_fields%get_field('z_lcl', zlcl_mixed)
     call turbulence_fields%get_field('cumulus', cumulus)
@@ -185,6 +189,7 @@ contains
                                               inv_depth,         &
                                               sd_orog,           &
                                               dA_2d,             &
+                                              surf_interp,       &
                                               bl_type_ind,       &
                                               tau_dec_bm,        &
                                               tau_hom_bm,        &

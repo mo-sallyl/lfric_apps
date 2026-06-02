@@ -13,7 +13,8 @@ use argument_mod,      only: arg_type,          &
                              GH_READ, GH_WRITE, &
                              DOMAIN,            &
                              ANY_DISCONTINUOUS_SPACE_9, &
-                             ANY_DISCONTINUOUS_SPACE_1
+                             ANY_DISCONTINUOUS_SPACE_1, &
+                             ANY_DISCONTINUOUS_SPACE_3
 use fs_continuity_mod, only: WTHETA, W3
 use kernel_mod,        only: kernel_type
 use empty_data_mod,    only: empty_real_data
@@ -29,7 +30,7 @@ private
 
 type, public, extends(kernel_type) :: pc2_initiation_kernel_type
   private
-  type(arg_type) :: meta_args(42) = (/                                   &
+  type(arg_type) :: meta_args(43) = (/                                   &
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! mv_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! ml_wth
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! mi_wth
@@ -49,6 +50,7 @@ type, public, extends(kernel_type) :: pc2_initiation_kernel_type
        arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! inv_depth
       arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! sd_orog
       arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_1), & ! dA_2d
+      arg_type(GH_FIELD, GH_REAL, GH_READ,  ANY_DISCONTINUOUS_SPACE_3), & ! surf_interp
        arg_type(GH_FIELD, GH_INTEGER,GH_READ,ANY_DISCONTINUOUS_SPACE_9), & ! bl_type_ind
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! tau_dec_bm
        arg_type(GH_FIELD, GH_REAL, GH_READ,  WTHETA),                    & ! tau_hom_bm
@@ -106,6 +108,7 @@ contains
 !> @param[in]     inv_depth      Depth of BL top inversion layer
 !> @param[in]     sd_orog        Sub-grid orographic standard deviation
 !> @param[in]     dA_2d          Horizontal cell area
+!> @param[in]     surf_interp    Surface interpolation field (fland at +0)
 !> @param[in]     bl_type_ind    Diagnosed BL types
 !> @param[in]     tau_dec_bm     Decorrelation time scale in wth
 !> @param[in]     tau_hom_bm     Homogenisation time scale in wth
@@ -162,6 +165,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
                                 inv_depth,                         &
                                 sd_orog,                           &
                                 dA_2d,                             &
+                                surf_interp,                       &
                                 bl_type_ind,                       &
                                 tau_dec_bm,                        &
                                 tau_hom_bm,                        &
@@ -191,6 +195,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
                                 ndf_wth, undf_wth, map_wth,        &
                                 ndf_w3,  undf_w3,  map_w3,         &
                                 ndf_2d,  undf_2d,  map_2d,         &
+                                ndf_surf, undf_surf, map_surf,     &
                                 ndf_bl,  undf_bl,  map_bl)
 
     use constants_mod,    only: r_def, i_def, r_um, i_um
@@ -218,6 +223,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
     integer(kind=i_def), intent(in) :: ndf_wth , ndf_w3
     integer(kind=i_def), intent(in) :: undf_wth, undf_w3
     integer(kind=i_def), intent(in) :: ndf_2d, undf_2d
+    integer(kind=i_def), intent(in) :: ndf_surf, undf_surf
     integer(kind=i_def), intent(in) :: ndf_bl, undf_bl
 
     real(kind=r_def), intent(in), dimension(undf_wth) :: mv_wth
@@ -248,6 +254,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
     real(kind=r_def), intent(in), dimension(undf_2d)  :: inv_depth
     real(kind=r_def), intent(in), dimension(undf_2d)  :: sd_orog
     real(kind=r_def), intent(in), dimension(undf_2d)  :: dA_2d
+    real(kind=r_def), intent(in), dimension(undf_surf) :: surf_interp
     integer(kind=i_def), intent(in), dimension(undf_bl) :: bl_type_ind
 
     real(kind=r_def), intent(in), dimension(undf_2d) :: zlcl_mixed
@@ -263,6 +270,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
     integer(kind=i_def), intent(in), dimension(ndf_wth,seg_len) :: map_wth
     integer(kind=i_def), intent(in), dimension(ndf_w3,seg_len)  :: map_w3
     integer(kind=i_def), intent(in), dimension(ndf_2d,seg_len)  :: map_2d
+    integer(kind=i_def), intent(in), dimension(ndf_surf,seg_len) :: map_surf
     integer(kind=i_def), intent(in), dimension(ndf_bl,seg_len)  :: map_bl
 
     ! The changes to the fields as a result
@@ -288,7 +296,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
          svar_turb_out, svar_bm_out, qcf2_work, qcf2_incr
 
     real(r_um), dimension(seg_len,1) :: zh_in, zhsc_in, dzh_in, bl_type_7_in,  &
-         p_star, zlcl_mix
+          p_star, zlcl_mix, fland_in
 
     real(r_um), dimension(seg_len,1,nlayers+1) :: p_rho_levels
 
@@ -398,6 +406,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
       zh_in(i,1)        = zh(map_2d(1,i))
       zhsc_in(i,1)      = zhsc(map_2d(1,i))
       dzh_in(i,1)       = real(inv_depth(map_2d(1,i)), r_um)
+      fland_in(i,1)     = real(surf_interp(map_surf(1,i)+0), r_um)
       bl_type_7_in(i,1) = bl_type_ind(map_bl(1,i)+6)
     end do
 
@@ -491,6 +500,9 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
                             sskew_out,                     &
                             svar_turb_out,                 &
                             svar_bm_out,                   &
+                            sd_orog,                       &
+                            dA_2d,                         &
+                            fland_in,                      &
                             wtrac)
 
     ! Recast back to LFRic space

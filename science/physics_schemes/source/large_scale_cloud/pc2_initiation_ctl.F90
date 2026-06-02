@@ -41,6 +41,10 @@ subroutine pc2_initiation_ctl (                                                &
 ! Output bimodal fields
   sskew, svar_turb, svar_bm,                                                   &
 
+! ENNUF ancillary inputs
+  sd_orog_2d, dA_2d,                                                           &
+  fland_2d,                                                                    &
+
 ! Water tracer structure
   wtrac                                                                        &
  )
@@ -58,6 +62,7 @@ use s_scmop_mod,           only: default_streams,                              &
                                  t_inst, d_wet, d_all, scmdiag_pc2
 
 use model_domain_mod, only: model_type, mt_single_column
+use planet_constants_mod, only: planet_radius
 
 use pc2_arcld_mod, only: pc2_arcld
 use pc2_checks_mod, only: pc2_checks
@@ -66,6 +71,7 @@ use pc2_hom_arcld_mod, only: pc2_hom_arcld
 use pc2_initiate_mod, only: pc2_initiate
 use pc2_bm_initiate_mod, only: pc2_bm_initiate
 use mphys_inputs_mod,   only: l_mcr_qcf2
+use ennuf_cld_mod,      only: ennuf_cld
 
 use free_tracers_inputs_mod, only: n_wtrac
 use water_tracers_mod,       only: wtrac_type
@@ -237,6 +243,14 @@ logical, intent(in) :: calculate_increments
 ! l_cloud_call_b4_conv = T.)
 type(wtrac_type), intent(in out) :: wtrac(n_wtrac)
 
+real(kind=real_umphys), intent(in) ::                                          &
+  sd_orog_2d(pdims_s%i_start:pdims_s%i_end,                                    &
+             pdims_s%j_start:pdims_s%j_end),                                   &
+  dA_2d(    pdims_s%i_start:pdims_s%i_end,                                     &
+            pdims_s%j_start:pdims_s%j_end),                                    &
+  fland_2d( pdims_s%i_start:pdims_s%i_end,                                     &
+            pdims_s%j_start:pdims_s%j_end)
+
 ! Local variables
 
 ! Output increment diagnostics
@@ -316,6 +330,10 @@ real(kind=real_umphys), allocatable :: sl_modes(:,:,:,:)
 real(kind=real_umphys), allocatable :: qw_modes(:,:,:,:)
 real(kind=real_umphys), allocatable :: rh_modes(:,:,:,:)
 real(kind=real_umphys), allocatable :: sd_modes(:,:,:,:)
+real(kind=real_umphys) :: orog_2d(pdims_s%i_start:pdims_s%i_end,               &
+                                  pdims_s%j_start:pdims_s%j_end)
+real(kind=real_umphys) :: gridsize_2d(pdims_s%i_start:pdims_s%i_end,           &
+                                      pdims_s%j_start:pdims_s%j_end)
 
 if (lhook) call dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
@@ -524,6 +542,19 @@ if (i_cld_area == acf_cusack) then
      cf_area,t,cf,cfl,cff,q,qcl,qcf,                                           &
      l_mixing_ratio)
 end if    ! i_cld_area
+
+do j = pdims_s%j_start, pdims_s%j_end
+  do i = pdims_s%i_start, pdims_s%i_end
+    orog_2d(i,j) = r_theta_levels(i,j,tdims_l%k_start) - planet_radius
+    gridsize_2d(i,j) = sqrt(max(dA_2d(i,j), 1.0_real_umphys))
+  end do
+end do
+
+! Apply ENNUF cloud update after standard PC2 checks/homogenisation.
+call ennuf_cld(p_theta_levels, t, q, qcl, qcf,                                 &
+               cf, cfl, cff,                                                   &
+               orog_2d, sd_orog_2d, fland_2d, gridsize_2d,                    &
+               .false., .false.)
 
 if (calculate_increments) then
   ! Update work array to hold net increment from the above routines

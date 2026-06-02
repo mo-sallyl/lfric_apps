@@ -228,7 +228,7 @@ contains
       call cld_alg( dtheta, mr,                                              &
                     theta_star, exner, rho,                                  &
                     derived_fields, orography_fields,                        &
-                    turbulence_fields,                                       &
+                    turbulence_fields, surface_fields,                       &
                     cloud_fields, convection_fields,                         &
                     theta, mr_n,                                             &
                     clock%get_step(), dt, .true. )

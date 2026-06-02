@@ -65,7 +65,7 @@ contains
   !>@param[in]     step              (in)     Timestep
   subroutine cld_alg(theta_inc, mr, theta, exner, rho,         &
                      derived_fields, orography_fields,         &
-                     turbulence_fields,                        &
+                     turbulence_fields, surface_fields,        &
                      cloud_fields, convection_fields,          &
                      theta_n, mr_n, step, dt, call_b4_conv)
 
@@ -77,6 +77,7 @@ contains
     type( field_collection_type ), intent(in) :: derived_fields
     type( field_collection_type ), intent(in) :: orography_fields
     type( field_collection_type ), intent(in) :: turbulence_fields
+    type( field_collection_type ), intent(in) :: surface_fields
     type( field_collection_type ), intent(in) :: cloud_fields
     type( field_collection_type ), intent(in) :: convection_fields
 
@@ -247,6 +248,7 @@ contains
                                theta_n,             & ! IN    Start of timestep
                                derived_fields,      & ! IN
                                orography_fields,    & ! IN
+                               surface_fields,      & ! IN
                                turbulence_fields,   &
                                cloud_fields,        & ! INOUT
                                sskew_bm, svar_bm,   &
