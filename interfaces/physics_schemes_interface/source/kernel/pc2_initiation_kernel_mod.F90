@@ -296,7 +296,7 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
          svar_turb_out, svar_bm_out, qcf2_work, qcf2_incr
 
     real(r_um), dimension(seg_len,1) :: zh_in, zhsc_in, dzh_in, bl_type_7_in,  &
-          p_star, zlcl_mix, fland_in
+          p_star, zlcl_mix, fland_in, sd_orog_in, dA_2d_in
 
     real(r_um), dimension(seg_len,1,nlayers+1) :: p_rho_levels
 
@@ -407,6 +407,8 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
       zhsc_in(i,1)      = zhsc(map_2d(1,i))
       dzh_in(i,1)       = real(inv_depth(map_2d(1,i)), r_um)
       fland_in(i,1)     = real(surf_interp(map_surf(1,i)+0), r_um)
+      sd_orog_in(i,1)   = real(sd_orog(map_2d(1,i)), r_um)
+      dA_2d_in(i,1)     = real(dA_2d(map_2d(1,i)), r_um)
       bl_type_7_in(i,1) = bl_type_ind(map_bl(1,i)+6)
     end do
 
@@ -500,8 +502,8 @@ subroutine pc2_initiation_code( nlayers, seg_len,                  &
                             sskew_out,                     &
                             svar_turb_out,                 &
                             svar_bm_out,                   &
-                            sd_orog,                       &
-                            dA_2d,                         &
+                            sd_orog_in,                    &
+                            dA_2d_in,                      &
                             fland_in,                      &
                             wtrac)
 
