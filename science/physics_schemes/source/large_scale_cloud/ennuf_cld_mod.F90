@@ -309,7 +309,7 @@ cloud_out(:)=0.0
 !$OMP        temp_kgi,q_kgi,pressure_kgi,temp,lcrcp,qcl,lsrcp,qcf,qv,          &
 !$OMP        p_theta_levels,topography,sigma_h,landfrac,bcf,cfl,cff,           &
 !$OMP        horiz_scale,norm_std,norm_avg,cfl_maxoverlap,cfl_minoverlap,   &
-!$OMP        cff_maxoverlap,cff_minoverlap)
+!$OMP        cff_maxoverlap,cff_minoverlap,tqp_in_nn,cloud_out_nn)
 
 !$OMP DO SCHEDULE(STATIC)
   DO j = tdims%j_start,tdims%j_end
