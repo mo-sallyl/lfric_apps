@@ -374,6 +374,13 @@ CONTAINS
            END DO
         END DO
 
+    CASE ("cappedrelu ")
+        DO c=1, channels
+           DO l=1, length
+              y_out(c,l) = min(max(0.0,x_in(c,l)), 1.0)
+           END DO
+        END DO
+
     CASE ("sigmoid   ")
 
         DO c=1, channels
