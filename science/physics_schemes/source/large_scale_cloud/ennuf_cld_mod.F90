@@ -25,7 +25,7 @@ USE pc2_constants_mod,         ONLY: condensate_limit
 USE crmml_ennuf_mod,           ONLY: crmml_ennuf
 USE yomhook,                   ONLY: lhook, dr_hook
 USE parkind1,                  ONLY: jprb, jpim
-USE log_mod,                   ONLY: log_event, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
+USE log_mod,                   ONLY: log_event, log_scratch_space, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
 
 IMPLICIT NONE
 
@@ -298,6 +298,16 @@ IF (.NOT. ennuf_printed) THEN
   ennuf_printed = .TRUE.
 END IF
 call log_event( 'running ENNUF_CLD', LOG_LEVEL_INFO )
+
+IF (test_kgi) THEN
+  call log_event( 'Testing KGI', LOG_LEVEL_INFO )
+END IF
+
+IF (test_kgo) THEN
+  call log_event( 'Testing KGO', LOG_LEVEL_INFO )
+END IF
+
+
 tqp_in(:)=0.0
 cloud_out(:)=0.0
 
@@ -309,7 +319,8 @@ cloud_out(:)=0.0
 !$OMP        temp_kgi,q_kgi,pressure_kgi,temp,lcrcp,qcl,lsrcp,qcf,qv,          &
 !$OMP        p_theta_levels,topography,sigma_h,landfrac,bcf,cfl,cff,           &
 !$OMP        horiz_scale,norm_std,norm_avg,cfl_maxoverlap,cfl_minoverlap,   &
-!$OMP        cff_maxoverlap,cff_minoverlap,tqp_in_nn,cloud_out_nn)
+!$OMP        cff_maxoverlap,cff_minoverlap,tqp_in_nn,cloud_out_nn,             &
+!$OMP        log_scratch_space)
 
 !$OMP DO SCHEDULE(STATIC)
   DO j = tdims%j_start,tdims%j_end
@@ -536,6 +547,13 @@ cloud_out(:)=0.0
           bcf(i,j,k) = temp_kgi(k)
           qcl(i,j,k) = q_kgi(k)
           qcf(i,j,k) = pressure_kgi(k)
+
+          
+          call log_event( 'Testing KGI: i,j,k,temp, q, P', LOG_LEVEL_INFO )
+          write(log_scratch_space,'(I3,I3,I3,G10.4,G10.4,G10.4)') i, j, k, bcf(i,j,k), qcl(i,j,k), qcf(i,j,k)
+          call log_event( log_scratch_space, LOG_LEVEL_INFO )
+
+
         END IF ! test_kgi
 
       END DO !k
