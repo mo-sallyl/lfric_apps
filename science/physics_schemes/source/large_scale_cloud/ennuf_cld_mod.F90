@@ -541,6 +541,10 @@ cloud_out(:)=0.0
           bcf(i,j,k) = bcf_out(k)
           qcl(i,j,k) = lwc_out(k)
           qcf(i,j,k) = iwc_out(k)
+          call log_event( 'Testing KGO: i,j,k,temp, q, P', LOG_LEVEL_INFO )
+          write(log_scratch_space,'(I3,I3,I3,G10.4,G10.4,G10.4)') i, j, k, bcf(i,j,k), qcl(i,j,k), qcf(i,j,k)
+          call log_event( log_scratch_space, LOG_LEVEL_INFO )
+
         END IF
 
         IF (test_kgi) THEN
@@ -550,7 +554,7 @@ cloud_out(:)=0.0
 
           
           call log_event( 'Testing KGI: i,j,k,temp, q, P', LOG_LEVEL_INFO )
-          write(log_scratch_space,'(I3,I3,I3,G10.4,G10.4,G10.4)') i, j, k, bcf(i,j,k), qcl(i,j,k), qcf(i,j,k)
+          write(log_scratch_space,'(I3,I3,I3,G16.8,G16.8,G16.8)') i, j, k, bcf(i,j,k), qcl(i,j,k), qcf(i,j,k)
           call log_event( log_scratch_space, LOG_LEVEL_INFO )
 
 

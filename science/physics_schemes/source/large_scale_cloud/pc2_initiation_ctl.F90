@@ -554,7 +554,7 @@ end do
 call ennuf_cld(p_theta_levels, t, q, qcl, qcf,                                 &
                cf, cfl, cff,                                                   &
                orog_2d, sd_orog_2d, fland_2d, gridsize_2d,                    &
-               .true., .false.)
+               .false., .true.)
 
 if (calculate_increments) then
   ! Update work array to hold net increment from the above routines
