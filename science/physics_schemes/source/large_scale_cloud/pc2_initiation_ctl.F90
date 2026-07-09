@@ -72,6 +72,10 @@ use water_tracers_mod,       only: wtrac_type
 use wtrac_pc2_mod,           only: wtrac_pc2_store
 use wtrac_pc2_phase_chg_mod, only: wtrac_pc2_phase_chg
 
+use super_resolution_mod, only: super_resolution
+use interpolation_mod, only: linterpolation, max_interpolation, linterpolation_b
+use planet_constants_mod,  only: lcrcp
+use log_mod,             only: log_event, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
 implicit none
 
 ! Description:
@@ -238,6 +242,69 @@ logical, intent(in) :: calculate_increments
 type(wtrac_type), intent(in out) :: wtrac(n_wtrac)
 
 ! Local variables
+! Super res variables
+real(kind=real_umphys) ::
+  ml_heights(                    1:128       ),                                & 
+  um_grid(           tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:29        ),                                & 
+  ml_grid(           tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:128       ),                                & 
+  rhcrit_nn(         rhc_row_length,                                           &
+                     rhc_rows,                                                 &
+                                 1:29        ),                                &
+  rhcrit_sr(         rhc_row_length,                                           &
+                     rhc_rows,                                                 &
+                                 1:128       ),                                &
+  rhts_nn(           tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:29),                                        &
+  rhts_sr(           tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:128),                                       &
+  p_nn(              pdims%i_start:pdims%i_end,                                &
+                     pdims%j_start:pdims%j_end,                                &
+                                 1:29        ),                                &
+  p_sr(              pdims%i_start:pdims%i_end,                                &
+                     pdims%j_start:pdims%j_end,                                &
+                                 1:128       ),                                &
+  t_nn(              tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:29         ),
+  t_sr(              tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:128        ),                               &
+  q_nn(              tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:29         ),                               &
+  q_sr(              tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:128        ),                               &
+  qcl_nn(            tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:29         ),                               &
+  qcl_sr(            tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:128        ),                               &
+  cf_nn(             tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:29         ),                               &
+  cf_sr(             tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:128        ),                               &
+  cfl_nn(            tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:29         ),                               &
+  cfl_sr(            tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:128        ),                               &
+  cff_nn(            tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:29         ),                               &
+  cff_sr(            tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:128        )
 
 ! Output increment diagnostics
 real(kind=real_umphys) ::                                                      &
@@ -317,6 +384,23 @@ real(kind=real_umphys), allocatable :: qw_modes(:,:,:,:)
 real(kind=real_umphys), allocatable :: rh_modes(:,:,:,:)
 real(kind=real_umphys), allocatable :: sd_modes(:,:,:,:)
 
+data ml_heights(:)/ &
+    5.0,    55.0,   105.0,   155.0,   205.0,   255.0,   305.0,   355.0,   405.0, &
+  455.0,   505.0,   555.0,   605.0,   655.0,   705.0,   755.0,   805.0,   855.0, &
+  905.0,   955.0,  1005.0,  1055.0,  1105.0,  1155.0,  1205.0,  1255.0,  1305.0, &
+ 1355.0,  1405.0,  1455.0,  1505.0,  1555.0,  1605.0,  1655.0,  1705.0,  1755.0, &
+ 1805.0,  1855.0,  1905.0,  1955.0,  2005.0,  2055.0,  2105.0,  2155.0,  2205.0, &
+ 2255.0,  2305.0,  2355.0,  2405.0,  2455.0,  2505.0,  2555.0,  2605.0,  2655.0, &
+ 2705.0,  2755.0,  2805.0,  2855.0,  2905.0,  2955.0,  3005.0,  3055.0,  3105.0, &
+ 3155.0,  3205.0,  3255.0,  3305.0,  3355.0,  3405.0,  3455.0,  3505.0,  3555.0, &
+ 3605.0,  3655.0,  3705.0,  3755.0,  3805.0,  3855.0,  3905.0,  3955.0,  4005.0, &
+ 4055.0,  4105.0,  4155.0,  4205.0,  4255.0,  4305.0,  4355.0,  4405.0,  4455.0, &
+ 4505.0,  4555.0,  4605.0,  4655.0,  4705.0,  4755.0,  4805.0,  4855.0,  4905.0, &
+ 4955.0,  5005.0,  5055.0,  5105.0,  5155.0,  5205.0,  5255.0,  5305.0,  5355.0, &
+ 5405.0,  5455.0,  5505.0,  5555.0,  5605.0,  5655.0,  5705.0,  5755.0,  5805.0, &
+ 5855.0,  5905.0,  5955.0,  6005.0,  6055.0,  6105.0,  6155.0,  6205.0,  6255.0, &
+ 6305.0,  6355.0 /
+
 if (lhook) call dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
 if (calculate_increments) then
@@ -356,6 +440,27 @@ if (calculate_increments) then
 !$OMP end do NOWAIT
 !$OMP end PARALLEL
 end if
+
+t_nn      = 0.0
+q_nn      = 0.0
+p_nn      = 0.0
+rhcrit_nn = 0.0
+cf_nn     = 0.0
+cfl_nn    = 0.0
+cff_nn    = 0.0
+qcl_nn    = 0.0
+rhts_nn   = 0.0
+t_sr      = 0.0
+q_sr      = 0.0
+p_sr      = 0.0
+rhcrit_sr = 0.0
+cf_sr     = 0.0
+cfl_sr    = 0.0
+cff_sr    = 0.0
+qcl_sr    = 0.0
+rhts_sr   = 0.0
+um_grid   = 0.0
+ml_grid   = 0.0
 
 ! Call checking routine
 ! Pass field arrays without halo cells.
@@ -469,10 +574,64 @@ else
      t,cf,cfl,cff,q,qcl,qcf,rhts,tlts,qtts,ptts,l_mixing_ratio)
 
   else !i_cld_area
-
+    call log_event( 'Run super resolution', LOG_LEVEL_INFO )
+    DO i=tdims%i_start,tdims%i_end
+      DO j=tdims%j_start,tdims%j_end
+        t_nn(i,j,:) = t(i,j,:29)
+        q_nn(i,j,:) = q(i,j,:29)
+        p_nn(i,j,:) = p_theta_levels(i,j,:29)
+        rhcrit_nn(i,j,:) = rhcrit(i,j,:29)
+        cf_nn(i,j,:) = cf(i,j,:29)
+        cff_nn(i,j,:) = cff(i,j,:29)
+        cfl_nn(i,j,:) = cfl(i,j,:29)
+        qcl_nn(i,j,:) = qcl(i,j,:29)
+        rhts_nn(i,j,:) = rhts(i,j,:29)
+        um_grid(i,j,:) = r_theta_levels(i,j,:29) - r_theta_levels(i,j,0)
+        ml_grid(i,j,:) = ml_heights(:) + r_theta_levels(i,j,0)
+        call linterpolation(p_nn(i,j,:),p_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(cf_nn(i,j,:),cf_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(cff_nn(i,j,:),cff_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(cfl_nn(i,j,:),cfl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(qcl_nn(i,j,:),qcl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr(i,j,:), um_grid(i,j,:),ml_heights(:))
+      END DO
+    END DO
+ 
     call pc2_initiate(p_theta_levels,cumulus,rhcrit,                           &
       tdims%k_end, rhc_row_length,rhc_rows,zlcl_mixed,r_theta_levels,          &
       t,cf,cfl,cff,q,qcl,rhts,l_mixing_ratio)
+
+    ! New call using ML interpolated values
+
+    call pc2_initiate(p_sr,cumulus,rhcrit_sr,                                  &
+     128, rhc_row_length,rhc_rows,zlcl_mixed,ml_grid,                          &
+     t_sr,cf_sr,cfl_sr,cff_sr,q_sr,qcl_sr,rhts_sr,l_mixing_ratio)
+
+    DO i=tdims%i_start,tdims%i_end
+      DO j=tdims%j_start,tdims%j_end
+        !t_nn(i,j,:)    = 0.0
+        !q_nn(i,j,:)    = 0.0
+        cf_nn(i,j,:)   = 0.0
+        cfl_nn(i,j,:)  = 0.0
+        qcl_nn(i,j,:)  = 0.0
+        rhts_nn(i,j,:) = 0.0
+        !CALL linterpolation_b(t_sr(i,j,:),t_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        !CALL linterpolation_b(q_sr(i,j,:),q_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call linterpolation_b(cf_sr(i,j,:),cf_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call linterpolation_b(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call linterpolation_b(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call linterpolation_b(rhts_sr(i,j,:),rhts_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        t(i,j,:29) = t(i,j,:) + lcrcp * qcl_nn(i,j,:)
+        q(i,j,:29) = q(i,j,:29) - qcl_nn(i,j,:)
+        cf(i,j,:29) = cf_nn(i,j,:)
+        cfl(i,j,:29) = cfl_nn(i,j,:)
+        qcl(i,j,:29) = qcl_nn(i,j,:)
+        rhts(i,j,:29) = rhts(i,j,:)
+      END DO
+    END DO
+
 
   end if !i_cld_area
 
