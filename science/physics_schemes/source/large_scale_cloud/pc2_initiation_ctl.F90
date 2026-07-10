@@ -271,7 +271,7 @@ real(kind=real_umphys) ::
                                  1:128       ),                                &
   t_nn(              tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:29         ),
+                                 1:29         ),                               &
   t_sr(              tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:128        ),                               &
