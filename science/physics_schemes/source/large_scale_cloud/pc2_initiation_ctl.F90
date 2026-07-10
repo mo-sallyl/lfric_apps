@@ -243,7 +243,7 @@ type(wtrac_type), intent(in out) :: wtrac(n_wtrac)
 
 ! Local variables
 ! Super res variables
-real(kind=real_umphys) ::
+real(kind=real_umphys) ::                                                      &
   ml_heights(                    1:128       ),                                & 
   um_grid(           tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
