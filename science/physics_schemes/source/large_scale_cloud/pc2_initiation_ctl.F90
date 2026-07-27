@@ -595,9 +595,9 @@ else
         call linterpolation(cfl_nn(i,j,:),cfl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call linterpolation(qcl_nn(i,j,:),qcl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call linterpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(t_nn(i,j,:),t_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        !call linterpolation(t_nn(i,j,:),t_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call linterpolation(q_nn(i,j,:),q_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        !call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr(i,j,:), um_grid(i,j,:),ml_heights(:))
+        call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr2(i,j,:), um_grid(i,j,:),ml_heights(:))
       END DO
     END DO
  
