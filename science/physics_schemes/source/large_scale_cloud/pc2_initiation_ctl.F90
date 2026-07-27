@@ -281,6 +281,9 @@ real(kind=real_umphys) ::                                                      &
   q_sr(              tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:128        ),                               &
+  q_sr2(              tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:128        ),                               &                                 
   qcl_nn(            tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:29         ),                               &
@@ -452,6 +455,7 @@ qcl_nn    = 0.0
 rhts_nn   = 0.0
 t_sr      = 0.0
 q_sr      = 0.0
+q_sr2     = 0.0
 p_sr      = 0.0
 rhcrit_sr = 0.0
 cf_sr     = 0.0
