@@ -15,7 +15,7 @@ CHARACTER(LEN=*), PARAMETER, PRIVATE :: ModuleName = 'SUPER_RESOLUTION_MOD'
 
 CONTAINS
 
-SUBROUTINE super_resolution(temp, qv, temp_sr, qv_sr, um_grid, ml_grid)
+SUBROUTINE super_resolution(temp_in, qv_in, temp_sr, qv_sr, um_grid, ml_grid)
 
 USE interpolation_mod, ONLY: linterpolation
 USE sr_ennuf_mod, ONLY: sr_ennuf
@@ -30,9 +30,10 @@ INTEGER :: k
 
 REAL(kind=real_umphys) :: stats(4)
 
-REAL(kind=real_umphys), INTENT(IN)    :: temp(nzi), qv(nzi), um_grid(nzi), ml_grid(nzf)
+REAL(kind=real_umphys), INTENT(IN)    :: temp_in(nzi), qv_in(nzi), um_grid(nzi), ml_grid(nzf)
 REAL(kind=real_umphys), INTENT(INOUT) :: temp_sr(nzf), qv_sr(nzf)
 
+REAL(kind=real_umphys) :: temp(nzi), qv(nzi)
 REAL(kind=real_umphys) :: temp_nn(nzf), qv_nn(nzf)
 REAL(kind=real_umphys) :: x_nn(nc,nzf), y_nn(nc,nzf)
 REAL(KIND=real_umphys) :: temp_kgi(1:70)
