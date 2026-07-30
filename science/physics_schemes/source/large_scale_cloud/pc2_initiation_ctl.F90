@@ -591,9 +591,9 @@ else
         qcl_nn(i,j,:) = qcl(i,j,:29)
         rhts_nn(i,j,:) = rhts(i,j,:29)
         um_grid(i,j,:) = r_theta_levels(i,j,:29) - r_theta_levels(i,j,0)
-        call log_event( 'r_theta_levels: 0, 1, 2, 3, 4, 5', LOG_LEVEL_INFO )
-        write(log_scratch_space,'(G10.4,G10.4,G10.4,G10.4,G10.4,G10.4)') r_theta_levels(i,j,0), r_theta_levels(i,j,1),   &
-        r_theta_levels(i,j,2),r_theta_levels(i,j,3), r_theta_levels(i,j,4), r_theta_levels(i,j,5)
+        call log_event( 'r_theta_levels 0, um_grid 1, 2, 3, 4, 5', LOG_LEVEL_INFO )
+        write(log_scratch_space,'(G10.4,G10.4,G10.4,G10.4,G10.4,G10.4)') r_theta_levels(i,j,0), um_grid(i,j,1),   &
+        um_grid(i,j,2),um_grid(i,j,3), um_grid(i,j,4), um_grid(i,j,5)
         call log_event( log_scratch_space, LOG_LEVEL_INFO )
         ml_grid(i,j,:) = ml_heights(:) + r_theta_levels(i,j,0)
         call log_event( 'ml_grid: 0, 1, 2', LOG_LEVEL_INFO )
