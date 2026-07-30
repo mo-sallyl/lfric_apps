@@ -592,12 +592,12 @@ else
         rhts_nn(i,j,:) = rhts(i,j,:29)
         um_grid(i,j,:) = r_theta_levels(i,j,:29) - r_theta_levels(i,j,0)
         call log_event( 'r_theta_levels: 0, 1, 2, 3, 4, 5', LOG_LEVEL_INFO )
-        write(log_scratch_space,'(I3,G10.4,G10.4)') r_theta_levels(i,j,0), r_theta_levels(i,j,1), r_theta_levels(i,j,2),  &
-        r_theta_levels(i,j,3), r_theta_levels(i,j,4), r_theta_levels(i,j,5)
+        write(log_scratch_space,'(G10.4,G10.4,G10.4,G10.4,G10.4,G10.4)') r_theta_levels(i,j,0), r_theta_levels(i,j,1),   &
+        r_theta_levels(i,j,2),r_theta_levels(i,j,3), r_theta_levels(i,j,4), r_theta_levels(i,j,5)
         call log_event( log_scratch_space, LOG_LEVEL_INFO )
         ml_grid(i,j,:) = ml_heights(:) + r_theta_levels(i,j,0)
         call log_event( 'ml_grid: 0, 1, 2', LOG_LEVEL_INFO )
-        write(log_scratch_space,'(I3,G10.4,G10.4)') ml_grid(i,j,0), ml_grid(i,j,1), ml_grid(i,j,2)
+        write(log_scratch_space,'(G10.4,G10.4,G10.4)') ml_grid(i,j,0), ml_grid(i,j,1), ml_grid(i,j,2)
         call log_event( log_scratch_space, LOG_LEVEL_INFO )       
         call linterpolation(p_nn(i,j,:),p_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call linterpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
