@@ -245,6 +245,7 @@ type(wtrac_type), intent(in out) :: wtrac(n_wtrac)
 ! Super res variables
 real(kind=real_umphys) ::                                                      &
   ml_heights(                    1:128       ),                                & 
+  um_heights(                    1:29       ),                                & 
   um_grid(           tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:29        ),                                & 
@@ -403,6 +404,13 @@ data ml_heights(:)/ &
  5405.0,  5455.0,  5505.0,  5555.0,  5605.0,  5655.0,  5705.0,  5755.0,  5805.0, &
  5855.0,  5905.0,  5955.0,  6005.0,  6055.0,  6105.0,  6155.0,  6205.0,  6255.0, &
  6305.0,  6355.0 /
+
+data um_heights(:)/ &
+ 0.0,     20.0,     53.336,   100.0,   160.0,    233.336, 320.0,    420.0, &
+ 533.336, 660.0,    800.0,    953.336, 1120.0,   1300.0,  1493.336, 1700.0, &
+ 1920.0,  2153.336, 2400.0,   2660.0,  2933.336, 3220.0,  3520.0,   3833.336, &
+ 4160.0,  4500.0,   4853.336, 5220.0,  5600.0 / 
+
 
 if (lhook) call dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
@@ -599,16 +607,16 @@ else
         call log_event( 'ml_grid: 0, 1, 2', LOG_LEVEL_INFO )
         write(log_scratch_space,'(G10.4,G10.4,G10.4)') ml_grid(i,j,0), ml_grid(i,j,1), ml_grid(i,j,2)
         call log_event( log_scratch_space, LOG_LEVEL_INFO )       
-        call linterpolation(p_nn(i,j,:),p_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(cf_nn(i,j,:),cf_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(cff_nn(i,j,:),cff_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(cfl_nn(i,j,:),cfl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(qcl_nn(i,j,:),qcl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        !call linterpolation(t_nn(i,j,:),t_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(q_nn(i,j,:),q_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr2(i,j,:), um_grid(i,j,:),ml_heights(:))
+        call linterpolation(p_nn(i,j,:),p_sr(i,j,:),um_heights(:),ml_heights(:))
+        call linterpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_heights(:),ml_heights(:))
+        call linterpolation(cf_nn(i,j,:),cf_sr(i,j,:),um_heights(:),ml_heights(:))
+        call linterpolation(cff_nn(i,j,:),cff_sr(i,j,:),um_heights(:),ml_heights(:))
+        call linterpolation(cfl_nn(i,j,:),cfl_sr(i,j,:),um_heights(:),ml_heights(:))
+        call linterpolation(qcl_nn(i,j,:),qcl_sr(i,j,:),um_heights(:),ml_heights(:))
+        call linterpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_heights(:),ml_heights(:))
+        !call linterpolation(t_nn(i,j,:),t_sr(i,j,:),um_heights(:),ml_heights(:))
+        call linterpolation(q_nn(i,j,:),q_sr(i,j,:),um_heights(:),ml_heights(:))
+        call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr2(i,j,:), um_heights(:),ml_heights(:))
       END DO
     END DO
  
