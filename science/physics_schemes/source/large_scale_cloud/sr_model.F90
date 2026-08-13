@@ -36,8 +36,8 @@ REAL(kind=real_umphys), INTENT(INOUT) :: temp_sr(nzf), qv_sr(nzf)
 REAL(kind=real_umphys) :: temp(nzi), qv(nzi)
 REAL(kind=real_umphys) :: temp_nn(nzf), qv_nn(nzf)
 REAL(kind=real_umphys) :: x_nn(nc,nzf), y_nn(nc,nzf)
-REAL(KIND=real_umphys) :: temp_kgi(1:70)
-REAL(KIND=real_umphys) :: q_kgi(1:70)
+REAL(KIND=real_umphys) :: temp_kgi(70)
+REAL(KIND=real_umphys) :: q_kgi(70)
 
 INTEGER :: i
 
@@ -90,7 +90,7 @@ temp_sr = 0.0
 qv_sr   = 0.0
 DO k = 1, nzi
     call log_event( 'Testing KGI: k,temp, q', LOG_LEVEL_INFO )
-    write(log_scratch_space,'(I3,G10.4,G10.4)') k, temp(k), qv(k)
+    write(log_scratch_space,'(I3,F10.4,G12.6)') k, temp(k), qv(k)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 END DO
 
@@ -99,9 +99,11 @@ CALL linterpolation(qv, qv_nn, um_grid, ml_grid)
 
 DO k = 1, nzf
     call log_event( 'Testing KGI after interp: k_sr,temp, q', LOG_LEVEL_INFO )
-    write(log_scratch_space,'(I3,G10.4,G10.4)') k, temp_nn(k), qv_nn(k)
+    write(log_scratch_space,'(I3,F10.4,G12.6)') k, temp_nn(k), qv_nn(k)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 END DO
+
+! All looks good until here
 
  x_nn(1,:) = (temp_nn(:) - stats(1) ) / stats(2) 
  x_nn(2,:) = (qv_nn(:)   - stats(3) ) / stats(4) 
@@ -113,7 +115,7 @@ qv_sr(:) = y_nn(2,:) * stats(4) + stats(3)
 
 DO k = 1, nzf
     call log_event( 'Testing KGI after super res: k_sr,temp_sr, q_sr', LOG_LEVEL_INFO )
-    write(log_scratch_space,'(I3,G10.4,G10.4)') k, temp_sr(k), qv_sr(k)
+    write(log_scratch_space,'(I3,F10.4,G12.6)') k, temp_sr(k), qv_sr(k)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 END DO
 

@@ -282,7 +282,7 @@ real(kind=real_umphys) ::                                                      &
   q_sr(              tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:128        ),                               &
-  q_sr2(              tdims%i_start:tdims%i_end,                                &
+  q_sr2(             tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:128        ),                               &                                 
   qcl_nn(            tdims%i_start:tdims%i_end,                                &
