@@ -201623,7 +201623,18 @@ y_out=0.0
 
 ! DOWN
 CALL conv_1d(x_in,y1,c_in,c1,l_in,l1,ks,w1,b1,"reflect",1,2,1)
+DO k = 1, 10
+    call log_event( 'Testing KGI in: k_sr,temp, q', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(I3,F10.4,G12.6)') k, x_in(1,k), x_in(2,k)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+END DO
+
 CALL activation_function(y1,y2,c1,l1,"leakyrelu ")
+DO k = 1, c1
+    call log_event( 'Testing KGI first layer: c1,y1, y2,y1,y2,y1,y2', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(I3,6G12.6)') k, y1(k,1), y2(k,1), y1(k,2), y2(k,2), y1(k,3), y2(k,3)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+END DO
 CALL conv_1d(y2,y3,c1,c2,l1,l2,ks,w2,b2,"reflect",1,2,1)
 CALL activation_function(y3,y4,c2,l2,"leakyrelu ")
 CALL conv_1d(y4,y5,c2,c3,l2,l3,ks,w3,b3,"reflect",1,2,1)
@@ -201648,6 +201659,12 @@ CALL skip_connection(y19,y2,y20,c1,c2,l1)
 CALL conv_1d(y20,y21,c2,c5,l1,l1,ks,w8,b8,"reflect",1,1,1)
 CALL pixel_shuffle(y21,y22,c5,c_in,l1,l_in,2)
 CALL addition(x_in,y22,y_out,c_in,l_in)
+! write out data
+DO k = 1, 10
+    call log_event( 'Testing KGI final layer: k_sr,temp1, q1, temp2, q2', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(I3,F10.4,G12.6,F10.4,G12.6)') k, y22(1,k), y22(2,k),y_out(1,k),y_out(2,k)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+END DO
 
 
 RETURN
