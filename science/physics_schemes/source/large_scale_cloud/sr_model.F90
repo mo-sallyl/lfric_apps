@@ -97,7 +97,7 @@ END DO
 CALL linterpolation(temp, temp_nn, um_grid, ml_grid)
 CALL linterpolation(qv, qv_nn, um_grid, ml_grid)
 
-DO k = 1, nzf
+DO k = 1, 10
     call log_event( 'Testing KGI after interp: k_sr,temp, q', LOG_LEVEL_INFO )
     write(log_scratch_space,'(I3,F10.4,G12.6)') k, temp_nn(k), qv_nn(k)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
@@ -108,12 +108,24 @@ END DO
  x_nn(1,:) = (temp_nn(:) - stats(1) ) / stats(2) 
  x_nn(2,:) = (qv_nn(:)   - stats(3) ) / stats(4) 
 
+DO k = 1, 10
+    call log_event( 'Testing KGI after norm: k_sr,temp, q', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(I3,F10.4,G12.6)') k, x_nn(1,k), x_nn(2,k)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+END DO
+
 CALL sr_ennuf(x_nn, y_nn)
+
+DO k = 1, 10
+    call log_event( 'Testing KGI after sr (normed): k_sr,temp, q', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(I3,F10.4,G12.6)') k, y_nn(1,k), y_nn(2,k)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+END DO
 
 temp_sr(:) = y_nn(1,:) *  stats(2) + stats(1)
 qv_sr(:) = y_nn(2,:) * stats(4) + stats(3)
 
-DO k = 1, nzf
+DO k = 1, 10
     call log_event( 'Testing KGI after super res: k_sr,temp_sr, q_sr', LOG_LEVEL_INFO )
     write(log_scratch_space,'(I3,F10.4,G12.6)') k, temp_sr(k), qv_sr(k)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
