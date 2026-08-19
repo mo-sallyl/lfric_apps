@@ -18,7 +18,7 @@ CONTAINS
 SUBROUTINE sr_ennuf(x_in, y_out)
 
 USE ennuf_mod, ONLY: conv_1d, activation_function, skip_connection, pixel_shuffle, addition
-
+USE log_mod,                   ONLY: log_event, log_scratch_space, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
 IMPLICIT NONE
 
 INTEGER, PARAMETER :: c_in = 2
