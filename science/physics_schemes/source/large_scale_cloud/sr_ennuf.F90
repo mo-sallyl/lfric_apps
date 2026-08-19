@@ -21,6 +21,8 @@ USE ennuf_mod, ONLY: conv_1d, activation_function, skip_connection, pixel_shuffl
 USE log_mod,                   ONLY: log_event, log_scratch_space, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
 IMPLICIT NONE
 
+INTEGER :: k
+
 INTEGER, PARAMETER :: c_in = 2
 INTEGER, PARAMETER :: l_in = 128
 
