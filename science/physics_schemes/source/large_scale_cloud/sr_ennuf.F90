@@ -201636,14 +201636,14 @@ CALL activation_function(y5,y6,c3,l3,"leakyrelu ")
 ! BOTTLENECK
 CALL conv_1d(y6,y7,c3,c3,l3,l4,ks,w4,b4,"reflect",1,2,1)
 CALL activation_function(y7,y8,c3,l4,"relu      ")
-DO k = 1, c3
-    call log_event( 'Testing KGI first layer: c3, y8(1), y8(2),y8(3),y8(4),y8(5),y8(6).y8(7),y8(8)', LOG_LEVEL_INFO )
-    write(log_scratch_space,'(I3,8G12.6)') k, y8(k,1), y8(k,2), y8(k,3), y8(k,4), y8(k,5), y8(k,6), y8(k,7), y8(k,8)
-    call log_event( log_scratch_space, LOG_LEVEL_INFO )
-END DO
 ! UP
 CALL conv_1d(y8,y9,c3,c4,l4,l4,ks,w5,b5,"reflect",1,1,1)
 CALL activation_function(y9,y10,c4,l4,"relu      ")
+DO k = 1, c4
+    call log_event( 'Testing KGI y10: c4, y10(1), y10(2),y10(3),y10(4),y10(5),y10(6).y10(7),y10(8)', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(I3,8G12.6)') k, y10(k,1), y10(k,2), y10(k,3), y10(k,4), y10(k,5), y10(k,6), y10(k,7), y10(k,8)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+END DO
 CALL pixel_shuffle(y10,y11,c4,c3,l4,l3,2)
 CALL skip_connection(y11,y6,y12,c3,c4,l3)
 CALL conv_1d(y12,y13,c4,c3,l3,l3,ks,w6,b6,"reflect",1,1,1)
@@ -201651,6 +201651,11 @@ CALL activation_function(y13,y14,c3,l3,"relu      ")
 CALL pixel_shuffle(y14,y15,c3,c2,l3,l2,2)
 CALL skip_connection(y15,y4,y16,c2,c3,l2)
 CALL conv_1d(y16,y17,c3,c2,l2,l2,ks,w7,b7,"reflect",1,1,1)
+DO k = 1, c2
+    call log_event( 'Testing KGI first layer: c2, y17(1), y17(2),y17(3),y17(4), y17(5), y17(6),y17(7),y17(8)', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(I3,8G12.6)') k, y17(k,1), y17(k,2),y17(k,3),y17(k,4),y17(k,5),y17(k,6), y17(k,7), y17(k,8)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+END DO
 CALL activation_function(y17,y18,c2,l2,"relu      ")
 CALL pixel_shuffle(y18,y19,c2,c1,l2,l1,2)
 CALL skip_connection(y19,y2,y20,c1,c2,l1)
