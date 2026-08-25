@@ -21,7 +21,7 @@ USE ennuf_mod, ONLY: conv_1d, activation_function, skip_connection, pixel_shuffl
 USE log_mod,                   ONLY: log_event, log_scratch_space, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
 IMPLICIT NONE
 
-INTEGER :: k
+INTEGER :: k,l
 
 INTEGER, PARAMETER :: c_in = 2
 INTEGER, PARAMETER :: l_in = 128
@@ -201652,13 +201652,36 @@ CALL pixel_shuffle(y14,y15,c3,c2,l3,l2,2)
 CALL skip_connection(y15,y4,y16,c2,c3,l2)
 CALL conv_1d(y16,y17,c3,c2,l2,l2,ks,w7,b7,"reflect",1,1,1)
 DO k = 1, c2
-    call log_event( 'Testing KGI first layer: c2, y17(1), y17(2),y17(3),y17(4), y17(5), y17(6),y17(7),y17(8)', LOG_LEVEL_INFO )
-    write(log_scratch_space,'(I3,8G12.6)') k, y17(k,1), y17(k,2),y17(k,3),y17(k,4),y17(k,5),y17(k,6), y17(k,7), y17(k,8)
+  DO l = 1, l2
+    call log_event( 'Testing y17: c2, l2, y17(k,l)', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y17(k,l)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
 END DO
 CALL activation_function(y17,y18,c2,l2,"relu      ")
+DO k = 1, c2
+  DO l = 1, l2
+    call log_event( 'Testing y18: c2, l2, y18(k,l)', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y18(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL pixel_shuffle(y18,y19,c2,c1,l2,l1,2)
+DO k = 1, c1
+  DO l = 1, l1
+    call log_event( 'Testing y19: c1, l1, y19(k,l)', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y19(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL skip_connection(y19,y2,y20,c1,c2,l1)
+DO k = 1, c2
+  DO l = 1, l1
+    call log_event( 'Testing y20: c2, l1, y20(k,l)', LOG_LEVEL_INFO )
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y20(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 ! FINAL 
 CALL conv_1d(y20,y21,c2,c5,l1,l1,ks,w8,b8,"reflect",1,1,1)
 DO k = 1, l1
