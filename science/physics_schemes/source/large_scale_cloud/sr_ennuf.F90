@@ -201622,81 +201622,204 @@ y22=0.0
 y_out=0.0
 
 !Main Calculations
-
+call log_event( 'Testing x_in: c_in(2), l_in(128), y_out(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l_in
+  DO k = 1, c_in
+    write(log_scratch_space,'(2I3,G12.6)') k, l, x_in(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 ! DOWN
 CALL conv_1d(x_in,y1,c_in,c1,l_in,l1,ks,w1,b1,"reflect",1,2,1)
-
-
+call log_event( 'Testing y1: c1 (32), l1(64), y1(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l1
+  DO k = 1, c1 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y1(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL activation_function(y1,y2,c1,l1,"leakyrelu ")
-
+call log_event( 'Testing y2: c1 (32), l1(64), y2(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l1
+  DO k = 1, c1 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y2(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL conv_1d(y2,y3,c1,c2,l1,l2,ks,w2,b2,"reflect",1,2,1)
+call log_event( 'Testing y3: c2 (64), l2(32), y3(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l2
+  DO k = 1, c2 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y3(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL activation_function(y3,y4,c2,l2,"leakyrelu ")
+call log_event( 'Testing y4: c2 (64), l2(32), y4(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l2
+  DO k = 1, c2 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y4(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL conv_1d(y4,y5,c2,c3,l2,l3,ks,w3,b3,"reflect",1,2,1)
+call log_event( 'Testing y5: c3 (128), l3(16), y5(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l3
+  DO k = 1, c3 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y5(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL activation_function(y5,y6,c3,l3,"leakyrelu ")
+call log_event( 'Testing y6: c3 (128), l3(16), y6(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l3
+  DO k = 1, c3 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y6(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 ! BOTTLENECK
 CALL conv_1d(y6,y7,c3,c3,l3,l4,ks,w4,b4,"reflect",1,2,1)
+call log_event( 'Testing y7: c3 (128), l4(8), y7(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l4
+  DO k = 1, c3 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y7(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL activation_function(y7,y8,c3,l4,"relu      ")
+call log_event( 'Testing y8: c3 (128), l4(8), y8(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l4
+  DO k = 1, c3 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y8(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 ! UP
 CALL conv_1d(y8,y9,c3,c4,l4,l4,ks,w5,b5,"reflect",1,1,1)
-CALL activation_function(y9,y10,c4,l4,"relu      ")
-DO k = 1, c4
-    call log_event( 'Testing KGI y10: c4, y10(1), y10(2),y10(3),y10(4),y10(5),y10(6).y10(7),y10(8)', LOG_LEVEL_INFO )
-    write(log_scratch_space,'(I3,8G12.6)') k, y10(k,1), y10(k,2), y10(k,3), y10(k,4), y10(k,5), y10(k,6), y10(k,7), y10(k,8)
+call log_event( 'Testing y9: c4 (256), l4(8), y9(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l4
+  DO k = 1, c4 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y9(k,l)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
+CALL activation_function(y9,y10,c4,l4,"relu      ")
+call log_event( 'Testing y10: c4(256), l4(8), y10(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l4
+  DO k = 1, c4 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y10(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
 END DO
 CALL pixel_shuffle(y10,y11,c4,c3,l4,l3,2)
+call log_event( 'Testing y11: c3(128), l3(16), y11(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l3
+  DO k = 1, c3 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y11(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL skip_connection(y11,y6,y12,c3,c4,l3)
+call log_event( 'Testing y12: c4(256), l3(16), y12(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l3
+  DO k = 1, c4 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y12(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL conv_1d(y12,y13,c4,c3,l3,l3,ks,w6,b6,"reflect",1,1,1)
+call log_event( 'Testing y13: c3(128), l3(16), y13(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l3
+  DO k = 1, c3 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y13(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL activation_function(y13,y14,c3,l3,"relu      ")
+call log_event( 'Testing y14: c3(128), l3(16), y14(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l3
+  DO k = 1, c3 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y14(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL pixel_shuffle(y14,y15,c3,c2,l3,l2,2)
+call log_event( 'Testing y15: c2(64), l2(32), y15(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l2
+  DO k = 1, c2 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y20(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL skip_connection(y15,y4,y16,c2,c3,l2)
+call log_event( 'Testing y16: c3(128), l2(32), y16(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l2
+  DO k = 1, c3 
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y16(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL conv_1d(y16,y17,c3,c2,l2,l2,ks,w7,b7,"reflect",1,1,1)
-DO k = 1, c2
-  DO l = 1, l2
-    call log_event( 'Testing y17: c2, l2, y17(k,l)', LOG_LEVEL_INFO )
+call log_event( 'Testing y17: c2(64), l2(32), y17(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l2
+  DO k = 1, c2
     write(log_scratch_space,'(2I3,G12.6)') k, l, y17(k,l)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
   END DO
 END DO
 CALL activation_function(y17,y18,c2,l2,"relu      ")
-DO k = 1, c2
-  DO l = 1, l2
-    call log_event( 'Testing y18: c2, l2, y18(k,l)', LOG_LEVEL_INFO )
+call log_event( 'Testing y18: c2(64), l2(32), y18(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l2
+  DO k = 1, c2
     write(log_scratch_space,'(2I3,G12.6)') k, l, y18(k,l)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
   END DO
 END DO
 CALL pixel_shuffle(y18,y19,c2,c1,l2,l1,2)
-DO k = 1, c1
-  DO l = 1, l1
-    call log_event( 'Testing y19: c1, l1, y19(k,l)', LOG_LEVEL_INFO )
+call log_event( 'Testing y19: c1(32), l1(64), y19(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l1
+  DO k = 1, c1
     write(log_scratch_space,'(2I3,G12.6)') k, l, y19(k,l)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
   END DO
 END DO
 CALL skip_connection(y19,y2,y20,c1,c2,l1)
-DO k = 1, c2
-  DO l = 1, l1
-    call log_event( 'Testing y20: c2, l1, y20(k,l)', LOG_LEVEL_INFO )
+! Definitely wrong from here.... 
+call log_event( 'Testing y20: c2(64), l1(64), y20(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l1
+  DO k = 1, c2 
     write(log_scratch_space,'(2I3,G12.6)') k, l, y20(k,l)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
   END DO
 END DO
 ! FINAL 
 CALL conv_1d(y20,y21,c2,c5,l1,l1,ks,w8,b8,"reflect",1,1,1)
-DO k = 1, l1
-    call log_event( 'Testing KGI first layer: c2, y21(1,k), y21(2,k),y21(3,k),y21(4,k)', LOG_LEVEL_INFO )
-    write(log_scratch_space,'(I3,4G12.6)') k, y21(1,k), y21(2,k), y21(3,k), y21(4,k)
+call log_event( 'Testing y21: c5(4), l1(64), y21(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l1
+  DO k = 1, c5
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y21(k,l)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
 END DO
 CALL pixel_shuffle(y21,y22,c5,c_in,l1,l_in,2)
+call log_event( 'Testing y22: c_in(2), l_in(128), y22(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l_in
+  DO k = 1, c_in
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y22(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL addition(x_in,y22,y_out,c_in,l_in)
 ! write out data
-DO k = 1, 10
-    call log_event( 'Testing KGI final layer: k_sr,temp1, q1, temp2, q2', LOG_LEVEL_INFO )
-    write(log_scratch_space,'(I3,F10.4,G12.6,F10.4,G12.6)') k, y22(1,k), y22(2,k),y_out(1,k),y_out(2,k)
+call log_event( 'Testing y_out: c_in(2), l_in(128), y_out(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l_in
+  DO k = 1, c_in
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y_out(k,l)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
 END DO
+
 
 
 RETURN
