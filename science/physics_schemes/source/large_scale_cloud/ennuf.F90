@@ -79,11 +79,13 @@ IF( length_out /= INT( 1 + ( length_in + 2 * padding - dilation * (size_kernel -
     PRINT*, "The dimensions of the output array do not correpond to the expected"
     PRINT*, "Check the values of padding, stride and dilation"
     PRINT*, "Ensure that length_out = 1 + ( length_in + 2 * padding - dilation * (size_kernel - 1) - 1) / stride"
+    RETURN
 END IF
         
 
 length_inter = length_in + 2 * padding    
 ALLOCATE(inter(channels_in, length_inter))
+y_out = 0.0
     
 SELECT CASE (pad_mode)
     CASE ("none   ")
@@ -91,13 +93,14 @@ SELECT CASE (pad_mode)
     CASE ("zeros  ")
         inter = 0.0
         DO i=1, channels_in
-            inter(i,padding+1:-padding-1) = x_in(i,:)
+            inter(i,padding+1:padding+length_in) = x_in(i,:)
         END DO
     CASE ("reflect")
+        inter = 0.0
         DO i=1, channels_in
-            inter(i,padding+1:-padding-1) = x_in(i,:)
-            inter(i,:padding) = x_in(i,padding+1:2:-1)
-            inter(i,length_inter-padding+1:) = x_in(i,length_in-1:length_in-padding-1:-1)
+            inter(i,padding+1:padding+length_in) = x_in(i,:)
+            inter(i,1:padding) = x_in(i,padding+1:2:-1)
+            inter(i,padding+length_in+1:length_inter) = x_in(i,length_in-1:length_in-padding:-1)
         END DO
 END SELECT
     
@@ -106,7 +109,7 @@ DO h=1, channels_out
         s = 0
         DO j=1, length_out
             DO k=1, size_kernel
-                y_out(h,j) = y_out(h,j) + weights(h,i,k) * inter(i, s+k)
+                y_out(h,j) = y_out(h,j) + weights(h,i,k) * inter(i, s + 1 + (k-1) * dilation)
             END DO
         s = s + stride
         END DO
@@ -237,15 +240,17 @@ IF( channels_out /= INT(channels_in / up_factor) ) THEN
     PRINT*, "ERROR: "
     PRINT*, "The dimensions of the output do not correspond to expected"
     PRINT*, "Ensure that channels_out = channels_in / upscale_factor"
+    RETURN
 ELSE IF ( length_out /= INT(length_in * up_factor) ) THEN
     PRINT*, "ERROR: "
     PRINT*, "The dimensions of the output do not correspond to expected"
-    PRINT*, "Ensure that length_out = length_in * upscale_factor"    
+    PRINT*, "Ensure that length_out = length_in * upscale_factor"
+    RETURN
 END IF
         
 j=1
 DO i=1, up_factor
-    inter1(i,:,:) = x_in(j:j+channels_out,:)
+    inter1(i,:,:) = x_in(j:j+channels_out-1,:)
     j = j + channels_out
 END DO
         
@@ -258,7 +263,7 @@ END DO
 DO i=1, channels_out
     j=1
     DO k=1, length_in
-        y_out(i,j:j+up_factor) = inter2(i,k,:)
+        y_out(i,j:j+up_factor-1) = inter2(i,k,:)
         j = j + up_factor
     END DO
 END DO
