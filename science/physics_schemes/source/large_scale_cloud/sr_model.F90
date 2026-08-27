@@ -103,8 +103,6 @@ DO k = 1, 10
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 END DO
 
-! All looks good until here
-
  x_nn(1,:) = (temp_nn(:) - stats(1) ) / stats(2) 
  x_nn(2,:) = (qv_nn(:)   - stats(3) ) / stats(4) 
 
@@ -113,6 +111,8 @@ DO k = 1, 10
     write(log_scratch_space,'(I3,F10.4,G12.6)') k, x_nn(1,k), x_nn(2,k)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
 END DO
+
+! All looks good until here
 
 CALL sr_ennuf(x_nn, y_nn)
 
