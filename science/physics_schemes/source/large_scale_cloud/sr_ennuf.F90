@@ -201748,7 +201748,7 @@ CALL pixel_shuffle(y14,y15,c3,c2,l3,l2,2)
 call log_event( 'Testing y15: c2(64), l2(32), y15(k,l)', LOG_LEVEL_INFO )
 DO l = 1, l2
   DO k = 1, c2 
-    write(log_scratch_space,'(2I3,G12.6)') k, l, y20(k,l)
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y15(k,l)
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
   END DO
 END DO
@@ -201785,6 +201785,14 @@ DO l = 1, l1
   END DO
 END DO
 CALL skip_connection(y19,y2,y20,c1,c2,l1)
+! Testing what y2 is now.....
+call log_event( 'Testing y2_2: c1(32), l1(64), y2_2(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l1
+  DO k = 1, c1
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y2(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 ! Definitely wrong from here.... 
 call log_event( 'Testing y20: c2(64), l1(64), y20(k,l)', LOG_LEVEL_INFO )
 DO l = 1, l1
