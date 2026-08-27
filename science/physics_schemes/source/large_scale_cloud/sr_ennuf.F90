@@ -201784,6 +201784,13 @@ DO l = 1, l1
     call log_event( log_scratch_space, LOG_LEVEL_INFO )
   END DO
 END DO
+call log_event( 'Testing y2_1: c1(32), l1(64), y2_1(k,l)', LOG_LEVEL_INFO )
+DO l = 1, l1
+  DO k = 1, c1
+    write(log_scratch_space,'(2I3,G12.6)') k, l, y2(k,l)
+    call log_event( log_scratch_space, LOG_LEVEL_INFO )
+  END DO
+END DO
 CALL skip_connection(y19,y2,y20,c1,c2,l1)
 ! Testing what y2 is now.....
 call log_event( 'Testing y2_2: c1(32), l1(64), y2_2(k,l)', LOG_LEVEL_INFO )
