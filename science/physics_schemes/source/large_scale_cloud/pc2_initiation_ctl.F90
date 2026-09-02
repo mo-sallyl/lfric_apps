@@ -73,7 +73,8 @@ use wtrac_pc2_mod,           only: wtrac_pc2_store
 use wtrac_pc2_phase_chg_mod, only: wtrac_pc2_phase_chg
 
 use super_resolution_mod, only: super_resolution
-use interpolation_mod, only: linterpolation, max_interpolation, linterpolation_b
+use interpolation_mod, only: linterpolation, max_interpolation, linterpolation_b, &
+                            pchip_interpolation, pchip_interpolation_b
 use planet_constants_mod,  only: lcrcp
 use log_mod,             only: log_event, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
 implicit none
@@ -588,13 +589,13 @@ else
         rhts_nn(i,j,:) = rhts(i,j,:29)
         um_grid(i,j,:) = r_theta_levels(i,j,:29) - r_theta_levels(i,j,0)
         ml_grid(i,j,:) = ml_heights(:) + r_theta_levels(i,j,0)
-        call linterpolation(p_nn(i,j,:),p_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(cf_nn(i,j,:),cf_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(cff_nn(i,j,:),cff_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(cfl_nn(i,j,:),cfl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(qcl_nn(i,j,:),qcl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
-        call linterpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call pchip_interpolation(p_nn(i,j,:),p_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call pchip_interpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call pchip_interpolation(cf_nn(i,j,:),cf_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call pchip_interpolation(cff_nn(i,j,:),cff_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call pchip_interpolation(cfl_nn(i,j,:),cfl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call pchip_interpolation(qcl_nn(i,j,:),qcl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call pchip_interpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr(i,j,:), um_grid(i,j,:),ml_heights(:))
       END DO
     END DO
@@ -611,20 +612,22 @@ else
 
     DO i=tdims%i_start,tdims%i_end
       DO j=tdims%j_start,tdims%j_end
-        !t_nn(i,j,:)    = 0.0
-        !q_nn(i,j,:)    = 0.0
+        t_nn(i,j,:)    = 0.0
+        q_nn(i,j,:)    = 0.0
         cf_nn(i,j,:)   = 0.0
         cfl_nn(i,j,:)  = 0.0
         qcl_nn(i,j,:)  = 0.0
         rhts_nn(i,j,:) = 0.0
-        !CALL linterpolation_b(t_sr(i,j,:),t_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        !CALL linterpolation_b(q_sr(i,j,:),q_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(cf_sr(i,j,:),cf_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(rhts_sr(i,j,:),rhts_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        t(i,j,:29) = t(i,j,:) + lcrcp * qcl_nn(i,j,:)
-        q(i,j,:29) = q(i,j,:29) - qcl_nn(i,j,:)
+        call pchip_interpolation_b(t_sr(i,j,:),t_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call pchip_interpolation_b(q_sr(i,j,:),q_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call pchip_interpolation_b(cf_sr(i,j,:),cf_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call pchip_interpolation_b(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call pchip_interpolation_b(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call pchip_interpolation_b(rhts_sr(i,j,:),rhts_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        !t(i,j,:29) = t(i,j,:) + lcrcp * qcl_nn(i,j,:)
+        !q(i,j,:29) = q(i,j,:29) - qcl_nn(i,j,:)
+        t(i,j,:29) = t_nn(i,j,:)
+        q(i,j,:29) = q_nn(i,j,:)
         cf(i,j,:29) = cf_nn(i,j,:)
         cfl(i,j,:29) = cfl_nn(i,j,:)
         qcl(i,j,:29) = qcl_nn(i,j,:)
