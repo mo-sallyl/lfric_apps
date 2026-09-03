@@ -7,7 +7,7 @@
 
 MODULE interpolation_mod
 
-USE um_types, ONLY: real_umphys
+use um_types, only: real_umphys
 
 IMPLICIT NONE
 
@@ -260,7 +260,8 @@ REAL(kind=real_umphys) :: h(um_size-1)      ! knot intervals
 REAL(kind=real_umphys) :: delta(um_size-1)  ! chord slopes
 REAL(kind=real_umphys) :: dk(um_size)       ! PCHIP derivatives at each knot
 
-REAL(kind=real_umphys) :: w1, w2, hk, t, phi0, phi1, psi0, psi1
+REAL(kind=real_umphys) :: w1, w2, hk, t, phi0, phi1, psi0, psi1, denom
+REAL(kind=real_umphys), PARAMETER :: eps = 1.0e-12_real_umphys
 INTEGER :: i, j, lo, hi, mid
 
 ! ----------------------------------------------------------------
@@ -268,7 +269,11 @@ INTEGER :: i, j, lo, hi, mid
 ! ----------------------------------------------------------------
 DO i = 1, um_size-1
     h(i)     = x_um(i+1) - x_um(i)
-    delta(i) = (y_um(i+1) - y_um(i)) / h(i)
+    IF (h(i) > eps) THEN
+        delta(i) = (y_um(i+1) - y_um(i)) / h(i)
+    ELSE
+        delta(i) = 0.0_real_umphys
+    END IF
 END DO
 
 ! ----------------------------------------------------------------
@@ -284,13 +289,22 @@ DO i = 2, um_size-1
         ! Weighted harmonic mean of adjacent chord slopes
         w1    = 2.0_real_umphys * h(i)   + h(i-1)
         w2    = 2.0_real_umphys * h(i-1) + h(i)
-        dk(i) = (w1 + w2) / (w1 / delta(i-1) + w2 / delta(i))
+        denom = w1 / delta(i-1) + w2 / delta(i)
+        IF (ABS(denom) > eps) THEN
+            dk(i) = (w1 + w2) / denom
+        ELSE
+            dk(i) = 0.0_real_umphys
+        END IF
     END IF
 END DO
 
 ! --- Left endpoint (one-sided three-point formula, then clamp) ---
-dk(1) = ((2.0_real_umphys * h(1) + h(2)) * delta(1) - h(1) * delta(2)) &
-        / (h(1) + h(2))
+IF (h(1) + h(2) > eps) THEN
+    dk(1) = ((2.0_real_umphys * h(1) + h(2)) * delta(1) - h(1) * delta(2)) &
+            / (h(1) + h(2))
+ELSE
+    dk(1) = 0.0_real_umphys
+END IF
 IF (dk(1) * delta(1) < 0.0_real_umphys) THEN
     dk(1) = 0.0_real_umphys
 ELSE IF (delta(1) * delta(2) < 0.0_real_umphys .AND. &
@@ -299,9 +313,13 @@ ELSE IF (delta(1) * delta(2) < 0.0_real_umphys .AND. &
 END IF
 
 ! --- Right endpoint ---
-dk(um_size) = ((2.0_real_umphys * h(um_size-1) + h(um_size-2)) * delta(um_size-1) &
-               - h(um_size-1) * delta(um_size-2)) &
-              / (h(um_size-1) + h(um_size-2))
+IF (h(um_size-1) + h(um_size-2) > eps) THEN
+    dk(um_size) = ((2.0_real_umphys * h(um_size-1) + h(um_size-2)) * delta(um_size-1) &
+                   - h(um_size-1) * delta(um_size-2)) &
+                  / (h(um_size-1) + h(um_size-2))
+ELSE
+    dk(um_size) = 0.0_real_umphys
+END IF
 IF (dk(um_size) * delta(um_size-1) < 0.0_real_umphys) THEN
     dk(um_size) = 0.0_real_umphys
 ELSE IF (delta(um_size-1) * delta(um_size-2) < 0.0_real_umphys .AND. &
@@ -337,6 +355,10 @@ DO j = 1, ml_size
 
     ! Normalised local coordinate t in [0,1]
     hk  = h(lo)
+    IF (hk <= eps) THEN
+        y_ml(j) = y_um(lo)
+        CYCLE
+    END IF
     t   = (x_ml(j) - x_um(lo)) / hk
 
     ! Cubic Hermite basis functions
@@ -377,12 +399,17 @@ REAL(kind=real_umphys) :: h(ml_size-1)
 REAL(kind=real_umphys) :: delta(ml_size-1)
 REAL(kind=real_umphys) :: dk(ml_size)
 
-REAL(kind=real_umphys) :: w1, w2, hk, t, phi0, phi1, psi0, psi1
+REAL(kind=real_umphys) :: w1, w2, hk, t, phi0, phi1, psi0, psi1, denom
+REAL(kind=real_umphys), PARAMETER :: eps = 1.0e-12_real_umphys
 INTEGER :: i, j, lo, hi, mid
 
 DO i = 1, ml_size-1
     h(i)     = x_ml(i+1) - x_ml(i)
-    delta(i) = (y_ml(i+1) - y_ml(i)) / h(i)
+    IF (h(i) > eps) THEN
+        delta(i) = (y_ml(i+1) - y_ml(i)) / h(i)
+    ELSE
+        delta(i) = 0.0_real_umphys
+    END IF
 END DO
 
 DO i = 2, ml_size-1
@@ -391,12 +418,21 @@ DO i = 2, ml_size-1
     ELSE
         w1    = 2.0_real_umphys * h(i)   + h(i-1)
         w2    = 2.0_real_umphys * h(i-1) + h(i)
-        dk(i) = (w1 + w2) / (w1 / delta(i-1) + w2 / delta(i))
+        denom = w1 / delta(i-1) + w2 / delta(i)
+        IF (ABS(denom) > eps) THEN
+            dk(i) = (w1 + w2) / denom
+        ELSE
+            dk(i) = 0.0_real_umphys
+        END IF
     END IF
 END DO
 
-dk(1) = ((2.0_real_umphys * h(1) + h(2)) * delta(1) - h(1) * delta(2)) &
-        / (h(1) + h(2))
+IF (h(1) + h(2) > eps) THEN
+    dk(1) = ((2.0_real_umphys * h(1) + h(2)) * delta(1) - h(1) * delta(2)) &
+            / (h(1) + h(2))
+ELSE
+    dk(1) = 0.0_real_umphys
+END IF
 IF (dk(1) * delta(1) < 0.0_real_umphys) THEN
     dk(1) = 0.0_real_umphys
 ELSE IF (delta(1) * delta(2) < 0.0_real_umphys .AND. &
@@ -404,9 +440,13 @@ ELSE IF (delta(1) * delta(2) < 0.0_real_umphys .AND. &
     dk(1) = 3.0_real_umphys * delta(1)
 END IF
 
-dk(ml_size) = ((2.0_real_umphys * h(ml_size-1) + h(ml_size-2)) * delta(ml_size-1) &
-               - h(ml_size-1) * delta(ml_size-2)) &
-              / (h(ml_size-1) + h(ml_size-2))
+IF (h(ml_size-1) + h(ml_size-2) > eps) THEN
+    dk(ml_size) = ((2.0_real_umphys * h(ml_size-1) + h(ml_size-2)) * delta(ml_size-1) &
+                   - h(ml_size-1) * delta(ml_size-2)) &
+                  / (h(ml_size-1) + h(ml_size-2))
+ELSE
+    dk(ml_size) = 0.0_real_umphys
+END IF
 IF (dk(ml_size) * delta(ml_size-1) < 0.0_real_umphys) THEN
     dk(ml_size) = 0.0_real_umphys
 ELSE IF (delta(ml_size-1) * delta(ml_size-2) < 0.0_real_umphys .AND. &
@@ -436,6 +476,10 @@ DO j = 1, um_size
     END DO
 
     hk  = h(lo)
+    IF (hk <= eps) THEN
+        y_um(j) = y_ml(lo)
+        CYCLE
+    END IF
     t   = (x_um(j) - x_ml(lo)) / hk
 
     phi0 =  2.0_real_umphys*t**3 - 3.0_real_umphys*t**2 + 1.0_real_umphys
