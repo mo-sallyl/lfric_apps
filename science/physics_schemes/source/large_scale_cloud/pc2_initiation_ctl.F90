@@ -625,7 +625,7 @@ else
         call pchip_interpolation_b(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call pchip_interpolation_b(rhts_sr(i,j,:),rhts_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         t(i,j,:29) = t(i,j,:) + lcrcp * qcl_nn(i,j,:)
-        q(i,j,:29) = q(i,j,:29) - qcl_nn(i,j,:)
+        q(i,j,:29) = MAX(q(i,j,:29) - qcl_nn(i,j,:), 0.0_real_umphys)
         !t(i,j,:29) = t_nn(i,j,:)
         !q(i,j,:29) = q_nn(i,j,:)
         cf(i,j,:29) = cf_nn(i,j,:)
