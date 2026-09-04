@@ -611,22 +611,23 @@ else
 
     DO i=tdims%i_start,tdims%i_end
       DO j=tdims%j_start,tdims%j_end
-        t_nn(i,j,:)    = 0.0
-        q_nn(i,j,:)    = 0.0
+        !t_nn(i,j,:)    = 0.0
+        !q_nn(i,j,:)    = 0.0
         cf_nn(i,j,:)   = 0.0
         cfl_nn(i,j,:)  = 0.0
         qcl_nn(i,j,:)  = 0.0
         rhts_nn(i,j,:) = 0.0
-        call linterpolation_b(t_sr(i,j,:),t_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(q_sr(i,j,:),q_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        !call linterpolation_b(t_sr(i,j,:),t_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        !call linterpolation_b(q_sr(i,j,:),q_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(cf_sr(i,j,:),cf_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(rhts_sr(i,j,:),rhts_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        !t(i,j,:29) = t(i,j,:) + lcrcp * qcl_nn(i,j,:)
-        !q(i,j,:29) = q(i,j,:29) - qcl_nn(i,j,:)
-        t(i,j,:29) = t_nn(i,j,:)
-        q(i,j,:29) = MAX(q_nn(i,j,:), 0.0_real_umphys)
+        ! Want to keep consistency so if no change to cf, qcl, T and q shouldn't change.
+        t(i,j,:29) = t(i,j,:) + lcrcp * MAX((qcl_nn(i,j,:29) - qcl(i,j,:)), 0.0_real_umphys)
+        q(i,j,:29) = q(i,j,:29) - MAX((qcl_nn(i,j,:29) - qcl(i,j,:)), 0.0_real_umphys)
+        !t(i,j,:29) = t_nn(i,j,:)
+        !q(i,j,:29) = MAX(q_nn(i,j,:), 0.0_real_umphys)
         cf(i,j,:29) = cf_nn(i,j,:)
         cfl(i,j,:29) = cfl_nn(i,j,:)
         qcl(i,j,:29) = qcl_nn(i,j,:)
