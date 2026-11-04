@@ -216,8 +216,15 @@ contains
     ! which is hardcoded to .false. in the UM code.
     ! We set them here just so that they can be passed in to the subroutines.
     real(r_um), parameter :: delta_lambda=1.0_r_um, delta_phi=1.0_r_um
-    real(r_um), dimension(seg_len) :: latitude, longitude
+    real(r_um), dimension(seg_len) :: latitude
     logical, parameter :: nonhydro=.false., dynbeta=.false.
+
+    ! True geographic coordinates in degrees, used only for ENNUF inference.
+    ! These are deliberately kept separate from 'latitude' above, which is a
+    ! placeholder fixed at 1.0 and consumed by gw_wave in
+    ! deltax = cos(latitude)*delta_lambda*deltay. Setting 'latitude' from the
+    ! model's actual latitude would change the baseline orographic GWD answers.
+    real(r_um), dimension(seg_len) :: ennuf_latitude, ennuf_longitude
 
     integer(i_um), parameter :: ennuf_levels = 53
     real(r_um), dimension(seg_len, nlayers) :: ennuf_theta_residual, &
@@ -289,6 +296,8 @@ contains
                        du_dt_diag, dv_dt_diag, &
                        stress_u, stress_v
 
+    !dhc - cant be parameter
+    latitude=1.0_r_um
     !-----------------------------------------------------------------------
     ! Initialise arrays and call UM code
     !-----------------------------------------------------------------------
@@ -349,8 +358,12 @@ contains
       grad_xx(i) = real(grad_xx_orog(map_2d(1,cell_index(i))), r_um)
       grad_xy(i) = real(grad_xy_orog(map_2d(1,cell_index(i))), r_um)
       grad_yy(i) = real(grad_yy_orog(map_2d(1,cell_index(i))), r_um)
-      latitude(i) = real(latitude_w3(map_2d(1,cell_index(i))), r_um)
-      longitude(i) = real(longitude_w3(map_2d(1,cell_index(i))), r_um)
+      ! Geographic coordinates for ENNUF, converted from radians to degrees
+      ! with longitude wrapped to [-180, 180) to match the training data.
+      ennuf_latitude(i) = real(latitude_w3(map_2d(1,cell_index(i))), r_um) &
+                          * (180.0_r_um/pi)
+      ennuf_longitude(i) = modulo(real(longitude_w3(map_2d(1,cell_index(i))), r_um) &
+                           * (180.0_r_um/pi) + 180.0_r_um, 360.0_r_um) - 180.0_r_um
 
       ! Scale aware inputs (not currently used in LFRic)
       orog_f1(i)  = 0.0_r_um
@@ -414,8 +427,8 @@ contains
                   ennuf_theta_residual=ennuf_theta_residual,         &
                   ennuf_u_residual=ennuf_u_residual,                 &
                   ennuf_v_residual=ennuf_v_residual,                 &
-                  latitude=latitude * (180.0_r_um/pi),                 &
-                  longitude=modulo(longitude * (180.0_r_um/pi) + 180.0_r_um, 360.0_r_um) - 180.0_r_um, &
+                  latitude=ennuf_latitude,                           &
+                  longitude=ennuf_longitude,                         &
                   orography_mean=orog_mean,                           &
                   orography_slope_x=grad_x, orography_slope_y=grad_y)
 

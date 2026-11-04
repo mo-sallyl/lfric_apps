@@ -60,7 +60,7 @@ module init_ancils_mod
   use radiation_config_mod,           only : topography, topography_slope, &
                                              topography_horizon, &
                                              n_horiz_ang, n_horiz_layer
-  use physics_config_mod,             only : orographic_drag, orographic_drag_um
+  use section_choice_config_mod,      only : orographic_drag, orographic_drag_um
   use specified_surface_config_mod,   only : internal_flux_method, &
                                              internal_flux_method_non_uniform, &
                                              surf_temp_forcing, &
