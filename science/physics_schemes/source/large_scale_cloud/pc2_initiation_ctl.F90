@@ -638,29 +638,22 @@ else
         cfl_nn(i,j,:)  = 0.0
         qcl_nn(i,j,:)  = 0.0
         rhts_nn(i,j,:) = 0.0
-<<<<<<< HEAD
-        call linterpolation_b(t_sr(i,j,:),t_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(q_sr(i,j,:),q_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-=======
         !call linterpolation_b(t_sr(i,j,:),t_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         !call linterpolation_b(q_sr(i,j,:),q_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
->>>>>>> super_res_2026.03.2
         call linterpolation_b(cf_sr(i,j,:),cf_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(rhts_sr(i,j,:),rhts_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-<<<<<<< HEAD
         !t(i,j,:29) = t(i,j,:) + lcrcp * qcl_nn(i,j,:)
         !q(i,j,:29) = q(i,j,:29) - qcl_nn(i,j,:)
         t(i,j,:29) = t_nn(i,j,:)
         q(i,j,:29) = q_nn(i,j,:)
-=======
         ! Want to keep consistency so if no change to cf, qcl, T and q shouldn't change.
-        t(i,j,:29) = t(i,j,:) + lcrcp * (qcl_nn(i,j,:) - qcl(i,j,:29))
-        q(i,j,:29) = MAX(q(i,j,:29) - (qcl_nn(i,j,:)-qcl(i,j,:29)), 0.0_real_umphys) ! check q not negative
+        ! Don't change t or q at all for now...
+        !t(i,j,:29) = t(i,j,:) + lcrcp * (qcl_nn(i,j,:) - qcl(i,j,:29))
+        !q(i,j,:29) = MAX(q(i,j,:29) - (qcl_nn(i,j,:)-qcl(i,j,:29)), 0.0_real_umphys) ! check q not negative
         !t(i,j,:29) = t_nn(i,j,:)
         !q(i,j,:29) = MAX(q_nn(i,j,:), 0.0_real_umphys)
->>>>>>> super_res_2026.03.2
         cf(i,j,:29) = cf_nn(i,j,:)
         cfl(i,j,:29) = cfl_nn(i,j,:)
         qcl(i,j,:29) = qcl_nn(i,j,:)
