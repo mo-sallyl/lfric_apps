@@ -632,8 +632,8 @@ else
 
     DO i=tdims%i_start,tdims%i_end
       DO j=tdims%j_start,tdims%j_end
-        t_nn(i,j,:)    = 0.0
-        q_nn(i,j,:)    = 0.0
+        !t_nn(i,j,:)    = 0.0
+        !q_nn(i,j,:)    = 0.0
         cf_nn(i,j,:)   = 0.0
         cfl_nn(i,j,:)  = 0.0
         qcl_nn(i,j,:)  = 0.0
