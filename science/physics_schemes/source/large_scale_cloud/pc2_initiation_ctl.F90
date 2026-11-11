@@ -75,7 +75,7 @@ use wtrac_pc2_phase_chg_mod, only: wtrac_pc2_phase_chg
 use super_resolution_mod, only: super_resolution
 use interpolation_mod, only: linterpolation, max_interpolation, linterpolation_b
 use planet_constants_mod,  only: lcrcp
-use log_mod,             only: log_event, log_scratch_space, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
+use log_mod,             only: log_event, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
 implicit none
 
 ! Description:
@@ -245,7 +245,6 @@ type(wtrac_type), intent(in out) :: wtrac(n_wtrac)
 ! Super res variables
 real(kind=real_umphys) ::                                                      &
   ml_heights(                    1:128       ),                                & 
-  um_heights(                    1:29       ),                                & 
   um_grid(           tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:29        ),                                & 
@@ -282,9 +281,6 @@ real(kind=real_umphys) ::                                                      &
   q_sr(              tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:128        ),                               &
-  q_sr2(             tdims%i_start:tdims%i_end,                                &
-                     tdims%j_start:tdims%j_end,                                &
-                                 1:128        ),                               &                                 
   qcl_nn(            tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:29         ),                               &
@@ -405,13 +401,6 @@ data ml_heights(:)/ &
  5855.0,  5905.0,  5955.0,  6005.0,  6055.0,  6105.0,  6155.0,  6205.0,  6255.0, &
  6305.0,  6355.0 /
 
-data um_heights(:)/ &
- 0.0,     20.0,     53.336,   100.0,   160.0,    233.336, 320.0,    420.0, &
- 533.336, 660.0,    800.0,    953.336, 1120.0,   1300.0,  1493.336, 1700.0, &
- 1920.0,  2153.336, 2400.0,   2660.0,  2933.336, 3220.0,  3520.0,   3833.336, &
- 4160.0,  4500.0,   4853.336, 5220.0,  5600.0 / 
-
-
 if (lhook) call dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
 if (calculate_increments) then
@@ -463,7 +452,6 @@ qcl_nn    = 0.0
 rhts_nn   = 0.0
 t_sr      = 0.0
 q_sr      = 0.0
-q_sr2     = 0.0
 p_sr      = 0.0
 rhcrit_sr = 0.0
 cf_sr     = 0.0
@@ -599,24 +587,15 @@ else
         qcl_nn(i,j,:) = qcl(i,j,:29)
         rhts_nn(i,j,:) = rhts(i,j,:29)
         um_grid(i,j,:) = r_theta_levels(i,j,:29) - r_theta_levels(i,j,0)
-        call log_event( 'r_theta_levels 0, um_grid 1, 2, 3, 4, 5', LOG_LEVEL_INFO )
-        write(log_scratch_space,'(G10.4,G10.4,G10.4,G10.4,G10.4,G10.4)') r_theta_levels(i,j,0), um_grid(i,j,1),   &
-        um_grid(i,j,2),um_grid(i,j,3), um_grid(i,j,4), um_grid(i,j,5)
-        call log_event( log_scratch_space, LOG_LEVEL_INFO )
         ml_grid(i,j,:) = ml_heights(:) + r_theta_levels(i,j,0)
-        call log_event( 'ml_grid: 0, 1, 2', LOG_LEVEL_INFO )
-        write(log_scratch_space,'(G10.4,G10.4,G10.4)') ml_grid(i,j,0), ml_grid(i,j,1), ml_grid(i,j,2)
-        call log_event( log_scratch_space, LOG_LEVEL_INFO )       
-        call linterpolation(p_nn(i,j,:),p_sr(i,j,:),um_heights(:),ml_heights(:))
-        call linterpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_heights(:),ml_heights(:))
-        call linterpolation(cf_nn(i,j,:),cf_sr(i,j,:),um_heights(:),ml_heights(:))
-        call linterpolation(cff_nn(i,j,:),cff_sr(i,j,:),um_heights(:),ml_heights(:))
-        call linterpolation(cfl_nn(i,j,:),cfl_sr(i,j,:),um_heights(:),ml_heights(:))
-        call linterpolation(qcl_nn(i,j,:),qcl_sr(i,j,:),um_heights(:),ml_heights(:))
-        call linterpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_heights(:),ml_heights(:))
-        !call linterpolation(t_nn(i,j,:),t_sr(i,j,:),um_heights(:),ml_heights(:))
-        call linterpolation(q_nn(i,j,:),q_sr(i,j,:),um_heights(:),ml_heights(:))
-        call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr2(i,j,:), um_heights(:),ml_heights(:))
+        call linterpolation(p_nn(i,j,:),p_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(cf_nn(i,j,:),cf_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(cff_nn(i,j,:),cff_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(cfl_nn(i,j,:),cfl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(qcl_nn(i,j,:),qcl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call linterpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr(i,j,:), um_grid(i,j,:),ml_heights(:))
       END DO
     END DO
  
@@ -644,12 +623,7 @@ else
         call linterpolation_b(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(rhts_sr(i,j,:),rhts_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        !t(i,j,:29) = t(i,j,:) + lcrcp * qcl_nn(i,j,:)
-        !q(i,j,:29) = q(i,j,:29) - qcl_nn(i,j,:)
-        t(i,j,:29) = t_nn(i,j,:)
-        q(i,j,:29) = q_nn(i,j,:)
         ! Want to keep consistency so if no change to cf, qcl, T and q shouldn't change.
-        ! Don't change t or q at all for now...
         !t(i,j,:29) = t(i,j,:) + lcrcp * (qcl_nn(i,j,:) - qcl(i,j,:29))
         !q(i,j,:29) = MAX(q(i,j,:29) - (qcl_nn(i,j,:)-qcl(i,j,:29)), 0.0_real_umphys) ! check q not negative
         !t(i,j,:29) = t_nn(i,j,:)
