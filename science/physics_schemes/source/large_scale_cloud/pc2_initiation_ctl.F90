@@ -73,7 +73,8 @@ use wtrac_pc2_mod,           only: wtrac_pc2_store
 use wtrac_pc2_phase_chg_mod, only: wtrac_pc2_phase_chg
 
 use super_resolution_mod, only: super_resolution
-use interpolation_mod, only: linterpolation, max_interpolation, linterpolation_b
+use interpolation_mod, only: linterpolation, max_interpolation, linterpolation_b, &
+                             conservative_interpolation
 use planet_constants_mod,  only: lcrcp
 use log_mod,             only: log_event, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
 implicit none
@@ -243,14 +244,17 @@ type(wtrac_type), intent(in out) :: wtrac(n_wtrac)
 
 ! Local variables
 ! Super res variables
+real(kind=real_umphys), parameter :: qcl_min = 1.0e-10_real_umphys  ! kg/kg
+real(kind=real_umphys), parameter :: cfl_min = 1.0e-3_real_umphys
 real(kind=real_umphys) ::                                                      &
   ml_heights(                    1:128       ),                                & 
   um_grid(           tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:29        ),                                & 
-  ml_grid(           tdims%i_start:tdims%i_end,                                &
-                     tdims%j_start:tdims%j_end,                                &
-                                 1:128       ),                                & 
+  ! Same shape as r_theta_levels: pc2_initiate needs level 0 (surface)
+  ml_grid(           tdims_l%i_start:tdims_l%i_end,                            &
+                     tdims_l%j_start:tdims_l%j_end,                            &
+                                 0:128       ),                                & 
   rhcrit_nn(         rhc_row_length,                                           &
                      rhc_rows,                                                 &
                                  1:29        ),                                &
@@ -287,6 +291,9 @@ real(kind=real_umphys) ::                                                      &
   qcl_sr(            tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:128        ),                               &
+  dqcl(              tdims%i_start:tdims%i_end,                                &
+                     tdims%j_start:tdims%j_end,                                &
+                                 1:29         ),                               &
   cf_nn(             tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
                                  1:29         ),                               &
@@ -586,8 +593,9 @@ else
         cfl_nn(i,j,:) = cfl(i,j,:29)
         qcl_nn(i,j,:) = qcl(i,j,:29)
         rhts_nn(i,j,:) = rhts(i,j,:29)
-        um_grid(i,j,:) = r_theta_levels(i,j,:29) - r_theta_levels(i,j,0)
-        ml_grid(i,j,:) = ml_heights(:) + r_theta_levels(i,j,0)
+        um_grid(i,j,:) = r_theta_levels(i,j,1:29) - r_theta_levels(i,j,0)
+        ml_grid(i,j,0)     = r_theta_levels(i,j,0)
+        ml_grid(i,j,1:128) = ml_heights(:) + r_theta_levels(i,j,0)
         call linterpolation(p_nn(i,j,:),p_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call linterpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call linterpolation(cf_nn(i,j,:),cf_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
@@ -619,19 +627,39 @@ else
         rhts_nn(i,j,:) = 0.0
         !call linterpolation_b(t_sr(i,j,:),t_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         !call linterpolation_b(q_sr(i,j,:),q_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(cf_sr(i,j,:),cf_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call conservative_interpolation(cf_sr(i,j,:),cf_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call conservative_interpolation(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call conservative_interpolation(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         call linterpolation_b(rhts_sr(i,j,:),rhts_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
         ! Want to keep consistency so if no change to cf, qcl, T and q shouldn't change.
         !t(i,j,:29) = t(i,j,:) + lcrcp * (qcl_nn(i,j,:) - qcl(i,j,:29))
         !q(i,j,:29) = MAX(q(i,j,:29) - (qcl_nn(i,j,:)-qcl(i,j,:29)), 0.0_real_umphys) ! check q not negative
-        t(i,j,:29) = t_nn(i,j,:)
-        q(i,j,:29) = MAX(q_nn(i,j,:), 0.0_real_umphys)
-        cf(i,j,:29) = cf_nn(i,j,:)
-        cfl(i,j,:29) = cfl_nn(i,j,:)
-        qcl(i,j,:29) = qcl_nn(i,j,:)
-        rhts(i,j,:29) = rhts(i,j,:)
+        !t(i,j,:29) = t_nn(i,j,:)
+        !q(i,j,:29) = MAX(q_nn(i,j,:), 0.0_real_umphys)
+        dqcl(i,j,:) = qcl_nn(i,j,:) - qcl(i,j,:29)
+        ! can't condense more vapour than exists, or evaporate more liquid than exists
+        dqcl(i,j,:) = MIN(dqcl(i,j,:),  q(i,j,:29))
+        dqcl(i,j,:) = MAX(dqcl(i,j,:), -qcl(i,j,:29))
+        qcl(i,j,:29) = qcl(i,j,:29) + dqcl(i,j,:)
+        q(i,j,:29)   = q(i,j,:29)   - dqcl(i,j,:)
+        t(i,j,:29)   = t(i,j,:29)   + lcrcp * dqcl(i,j,:)
+        cfl(i,j,:29) = MIN(MAX(cfl_nn(i,j,:), 0.0_real_umphys), 1.0_real_umphys)
+        !qcl(i,j,:29) = qcl_nn(i,j,:)
+        DO k = 1, 29
+          ! Negligible liquid: evaporate remainder and remove liquid cloud
+          IF (qcl(i,j,k) < qcl_min) THEN
+            q(i,j,k)   = q(i,j,k) + qcl(i,j,k)
+            t(i,j,k)   = t(i,j,k) - lcrcp * qcl(i,j,k)
+            qcl(i,j,k) = 0.0_real_umphys
+            cfl(i,j,k) = 0.0_real_umphys
+          ! Liquid but no liquid cloud: give it a minimal cloud fraction
+          ELSE IF (cfl(i,j,k) < cfl_min) THEN
+            cfl(i,j,k) = cfl_min
+          END IF
+          ! Bulk cf must lie between max(cfl,cff) and min(1,cfl+cff)
+          cf(i,j,k) = MAX(cf_nn(i,j,k), cfl(i,j,k), cff(i,j,k))
+          cf(i,j,k) = MIN(cf(i,j,k), cfl(i,j,k) + cff(i,j,k), 1.0_real_umphys)
+        END DO
       END DO
     END DO
 

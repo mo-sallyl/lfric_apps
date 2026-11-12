@@ -136,4 +136,94 @@ END DO
 
 END SUBROUTINE max_interpolation
 
+! -----------------------------------------------------------------------------------
+!
+! conservative_interpolation: layer-average (conservative) remapping from the
+! high-resolution ML grid (ml_size=128 levels, cell-centres x_ml) down to the
+! coarser UM grid (um_size=29 levels, cell-centres x_um).
+!
+! For each coarse cell i the layer bounds are the midpoints between adjacent
+! coarse-level centres (with the domain floor/top as the outermost bounds).
+! Every fine cell j whose centre lies inside that layer contributes its value
+! weighted by the fraction of the fine cell that overlaps the coarse layer.
+! The fine-cell bounds are likewise defined as midpoints between adjacent fine
+! centres.  This guarantees exact conservation of the column integral when both
+! grids span the same total depth.
+!
+!  Arguments
+!    y_ml  (IN)    : field on the fine (ML) grid  [ml_size]
+!    y_um  (OUT)   : field on the coarse (UM) grid [um_size]
+!    x_ml  (IN)    : fine-grid cell-centre heights [ml_size], ascending
+!    x_um  (IN)    : coarse-grid cell-centre heights [um_size], ascending
+!
+SUBROUTINE conservative_interpolation(y_ml, y_um, x_ml, x_um)
+
+IMPLICIT NONE
+
+INTEGER, PARAMETER :: um_size = 29
+INTEGER, PARAMETER :: ml_size = 128
+
+REAL(kind=real_umphys), INTENT(IN)  :: x_ml(ml_size), y_ml(ml_size)
+REAL(kind=real_umphys), INTENT(IN)  :: x_um(um_size)
+REAL(kind=real_umphys), INTENT(OUT) :: y_um(um_size)
+
+! Cell-edge arrays (size = n+1 for n cell centres)
+REAL(kind=real_umphys) :: edge_ml(ml_size+1)
+REAL(kind=real_umphys) :: edge_um(um_size+1)
+
+REAL(kind=real_umphys) :: lo, hi, overlap, total_weight
+INTEGER :: i, j
+
+! ------------------------------------------------------------------
+! Build fine-grid (ML) cell edges as midpoints; extend at boundaries
+! ------------------------------------------------------------------
+edge_ml(1) = x_ml(1) - 0.5_real_umphys * (x_ml(2) - x_ml(1))
+DO j = 2, ml_size
+    edge_ml(j) = 0.5_real_umphys * (x_ml(j-1) + x_ml(j))
+END DO
+edge_ml(ml_size+1) = x_ml(ml_size) + 0.5_real_umphys * (x_ml(ml_size) - x_ml(ml_size-1))
+
+! Clamp lower edge to zero if it went negative
+IF (edge_ml(1) < 0.0_real_umphys) edge_ml(1) = 0.0_real_umphys
+
+! ------------------------------------------------------------------
+! Build coarse-grid (UM) cell edges as midpoints; extend at boundaries
+! ------------------------------------------------------------------
+edge_um(1) = x_um(1) - 0.5_real_umphys * (x_um(2) - x_um(1))
+DO i = 2, um_size
+    edge_um(i) = 0.5_real_umphys * (x_um(i-1) + x_um(i))
+END DO
+edge_um(um_size+1) = x_um(um_size) + 0.5_real_umphys * (x_um(um_size) - x_um(um_size-1))
+
+IF (edge_um(1) < 0.0_real_umphys) edge_um(1) = 0.0_real_umphys
+
+! ------------------------------------------------------------------
+! Conservative remapping: weighted average over overlapping fine cells
+! ------------------------------------------------------------------
+DO i = 1, um_size
+    total_weight = 0.0_real_umphys
+    y_um(i)      = 0.0_real_umphys
+
+    DO j = 1, ml_size
+        ! Overlap between fine cell j and coarse cell i
+        lo = MAX(edge_ml(j),   edge_um(i))
+        hi = MIN(edge_ml(j+1), edge_um(i+1))
+
+        IF (hi > lo) THEN
+            overlap      = hi - lo
+            y_um(i)      = y_um(i)      + y_ml(j) * overlap
+            total_weight = total_weight + overlap
+        END IF
+    END DO
+
+    IF (total_weight > 0.0_real_umphys) THEN
+        y_um(i) = y_um(i) / total_weight
+    END IF
+END DO
+
+RETURN
+
+END SUBROUTINE conservative_interpolation
+
+
 END MODULE interpolation_mod
