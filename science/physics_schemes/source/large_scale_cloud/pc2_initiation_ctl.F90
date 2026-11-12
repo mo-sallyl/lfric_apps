@@ -74,7 +74,7 @@ use wtrac_pc2_phase_chg_mod, only: wtrac_pc2_phase_chg
 
 use super_resolution_mod, only: super_resolution
 use interpolation_mod, only: linterpolation, max_interpolation, linterpolation_b, &
-                             conservative_interpolation
+                             conservative_interpolation, mean_preserving_adjust
 use planet_constants_mod,  only: lcrcp
 use log_mod,             only: log_event, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
 implicit none
@@ -246,6 +246,8 @@ type(wtrac_type), intent(in out) :: wtrac(n_wtrac)
 ! Super res variables
 real(kind=real_umphys), parameter :: qcl_min = 1.0e-10_real_umphys  ! kg/kg
 real(kind=real_umphys), parameter :: cfl_min = 1.0e-3_real_umphys
+! SR adds sub-grid structure only: fine profiles keep the UM layer means
+logical, parameter :: l_sr_mean_preserve = .true.
 real(kind=real_umphys) ::                                                      &
   ml_heights(                    1:128       ),                                & 
   um_grid(           tdims%i_start:tdims%i_end,                                &
@@ -604,6 +606,17 @@ else
         call linterpolation(qcl_nn(i,j,:),qcl_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call linterpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr(i,j,:), um_grid(i,j,:),ml_heights(:))
+        if (l_sr_mean_preserve) then
+          call mean_preserving_adjust(t_sr(i,j,:),   t_nn(i,j,:),   ml_heights(:), um_grid(i,j,:), .false.)
+          call mean_preserving_adjust(q_sr(i,j,:),   q_nn(i,j,:),   ml_heights(:), um_grid(i,j,:), .true.)
+          call mean_preserving_adjust(qcl_sr(i,j,:), qcl_nn(i,j,:), ml_heights(:), um_grid(i,j,:), .true.)
+          call mean_preserving_adjust(cf_sr(i,j,:),  cf_nn(i,j,:),  ml_heights(:), um_grid(i,j,:), .true.)
+          call mean_preserving_adjust(cfl_sr(i,j,:), cfl_nn(i,j,:), ml_heights(:), um_grid(i,j,:), .true.)
+          call mean_preserving_adjust(cff_sr(i,j,:), cff_nn(i,j,:), ml_heights(:), um_grid(i,j,:), .true.)
+          cf_sr(i,j,:)  = MIN(cf_sr(i,j,:),  1.0_real_umphys)
+          cfl_sr(i,j,:) = MIN(cfl_sr(i,j,:), 1.0_real_umphys)
+          cff_sr(i,j,:) = MIN(cff_sr(i,j,:), 1.0_real_umphys)
+        end if
       END DO
     END DO
  
