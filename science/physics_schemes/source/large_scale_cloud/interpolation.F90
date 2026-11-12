@@ -131,6 +131,8 @@ DO i=1, um_size
          END IF
       END IF
    END DO
+   ! No fine level inside this layer: use the nearest one
+   IF (n == 0) idx = MINLOC(ABS(x_ml - x_um(i)), DIM=1)
    y_um(i) = y_ml(idx)     
 END DO
 

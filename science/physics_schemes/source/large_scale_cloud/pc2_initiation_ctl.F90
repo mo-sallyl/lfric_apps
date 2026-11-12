@@ -248,6 +248,11 @@ real(kind=real_umphys), parameter :: qcl_min = 1.0e-10_real_umphys  ! kg/kg
 real(kind=real_umphys), parameter :: cfl_min = 1.0e-3_real_umphys
 ! SR adds sub-grid structure only: fine profiles keep the UM layer means
 logical, parameter :: l_sr_mean_preserve = .true.
+! Diagnose SR liquid cloud from clear sky (PC2 'original' initiation only acts where cfl==0)
+logical, parameter :: l_sr_from_clear = .true.
+! Map SR liquid cloud fraction back with layer max (area-like) instead of layer mean
+logical, parameter :: l_sr_max_cfl = .false.
+real(kind=real_umphys) :: dcfl_k, dqcl_k
 real(kind=real_umphys) ::                                                      &
   ml_heights(                    1:128       ),                                & 
   um_grid(           tdims%i_start:tdims%i_end,                                &
@@ -617,6 +622,14 @@ else
           cfl_sr(i,j,:) = MIN(cfl_sr(i,j,:), 1.0_real_umphys)
           cff_sr(i,j,:) = MIN(cff_sr(i,j,:), 1.0_real_umphys)
         end if
+        if (l_sr_from_clear) then
+          ! Convert to liquid temperature / total water and remove liquid cloud
+          t_sr(i,j,:)   = t_sr(i,j,:) - lcrcp * qcl_sr(i,j,:)
+          q_sr(i,j,:)   = q_sr(i,j,:) + qcl_sr(i,j,:)
+          qcl_sr(i,j,:) = 0.0_real_umphys
+          cfl_sr(i,j,:) = 0.0_real_umphys
+          cf_sr(i,j,:)  = cff_sr(i,j,:)
+        end if
       END DO
     END DO
  
@@ -632,46 +645,36 @@ else
 
     DO i=tdims%i_start,tdims%i_end
       DO j=tdims%j_start,tdims%j_end
-        !t_nn(i,j,:)    = 0.0
-        !q_nn(i,j,:)    = 0.0
-        cf_nn(i,j,:)   = 0.0
-        cfl_nn(i,j,:)  = 0.0
-        qcl_nn(i,j,:)  = 0.0
-        rhts_nn(i,j,:) = 0.0
-        !call linterpolation_b(t_sr(i,j,:),t_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        !call linterpolation_b(q_sr(i,j,:),q_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call conservative_interpolation(cf_sr(i,j,:),cf_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call conservative_interpolation(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        if (l_sr_max_cfl) then
+          call max_interpolation(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        else
+          call conservative_interpolation(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        end if
         call conservative_interpolation(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        call linterpolation_b(rhts_sr(i,j,:),rhts_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        ! Want to keep consistency so if no change to cf, qcl, T and q shouldn't change.
-        !t(i,j,:29) = t(i,j,:) + lcrcp * (qcl_nn(i,j,:) - qcl(i,j,:29))
-        !q(i,j,:29) = MAX(q(i,j,:29) - (qcl_nn(i,j,:)-qcl(i,j,:29)), 0.0_real_umphys) ! check q not negative
-        !t(i,j,:29) = t_nn(i,j,:)
-        !q(i,j,:29) = MAX(q_nn(i,j,:), 0.0_real_umphys)
-        dqcl(i,j,:) = qcl_nn(i,j,:) - qcl(i,j,:29)
-        ! can't condense more vapour than exists, or evaporate more liquid than exists
-        dqcl(i,j,:) = MIN(dqcl(i,j,:),  q(i,j,:29))
-        dqcl(i,j,:) = MAX(dqcl(i,j,:), -qcl(i,j,:29))
-        qcl(i,j,:29) = qcl(i,j,:29) + dqcl(i,j,:)
-        q(i,j,:29)   = q(i,j,:29)   - dqcl(i,j,:)
-        t(i,j,:29)   = t(i,j,:29)   + lcrcp * dqcl(i,j,:)
-        cfl(i,j,:29) = MIN(MAX(cfl_nn(i,j,:), 0.0_real_umphys), 1.0_real_umphys)
-        !qcl(i,j,:29) = qcl_nn(i,j,:)
+
+        ! SR can only add liquid cloud on top of the UM-level PC2 state
         DO k = 1, 29
-          ! Negligible liquid: evaporate remainder and remove liquid cloud
-          IF (qcl(i,j,k) < qcl_min) THEN
-            q(i,j,k)   = q(i,j,k) + qcl(i,j,k)
-            t(i,j,k)   = t(i,j,k) - lcrcp * qcl(i,j,k)
-            qcl(i,j,k) = 0.0_real_umphys
-            cfl(i,j,k) = 0.0_real_umphys
-          ! Liquid but no liquid cloud: give it a minimal cloud fraction
-          ELSE IF (cfl(i,j,k) < cfl_min) THEN
+          dqcl_k = MAX(qcl_nn(i,j,k) - qcl(i,j,k), 0.0_real_umphys)
+          dqcl_k = MIN(dqcl_k, q(i,j,k))
+          dcfl_k = MAX(MIN(cfl_nn(i,j,k), 1.0_real_umphys) - cfl(i,j,k), 0.0_real_umphys)
+
+          qcl(i,j,k) = qcl(i,j,k) + dqcl_k
+          q(i,j,k)   = q(i,j,k)   - dqcl_k
+          t(i,j,k)   = t(i,j,k)   + lcrcp * dqcl_k
+          dqcl(i,j,k) = dqcl_k
+
+          ! No liquid to go with new cloud: don't add it
+          IF (qcl(i,j,k) < qcl_min) dcfl_k = 0.0_real_umphys
+          cfl(i,j,k) = cfl(i,j,k) + dcfl_k
+          ! New liquid but no liquid cloud: give it a minimal cloud fraction
+          IF (dqcl_k > 0.0_real_umphys .AND. cfl(i,j,k) < cfl_min) THEN
+            dcfl_k     = dcfl_k + (cfl_min - cfl(i,j,k))
             cfl(i,j,k) = cfl_min
           END IF
+
           ! Bulk cf must lie between max(cfl,cff) and min(1,cfl+cff)
-          cf(i,j,k) = MAX(cf_nn(i,j,k), cfl(i,j,k), cff(i,j,k))
-          cf(i,j,k) = MIN(cf(i,j,k), cfl(i,j,k) + cff(i,j,k), 1.0_real_umphys)
+          cf(i,j,k) = MIN(cf(i,j,k) + dcfl_k, cfl(i,j,k) + cff(i,j,k), 1.0_real_umphys)
+          cf(i,j,k) = MAX(cf(i,j,k), cfl(i,j,k), cff(i,j,k))
         END DO
       END DO
     END DO
