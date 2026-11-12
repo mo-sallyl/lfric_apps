@@ -626,8 +626,8 @@ else
         ! Want to keep consistency so if no change to cf, qcl, T and q shouldn't change.
         !t(i,j,:29) = t(i,j,:) + lcrcp * (qcl_nn(i,j,:) - qcl(i,j,:29))
         !q(i,j,:29) = MAX(q(i,j,:29) - (qcl_nn(i,j,:)-qcl(i,j,:29)), 0.0_real_umphys) ! check q not negative
-        !t(i,j,:29) = t_nn(i,j,:)
-        !q(i,j,:29) = MAX(q_nn(i,j,:), 0.0_real_umphys)
+        t(i,j,:29) = t_nn(i,j,:)
+        q(i,j,:29) = MAX(q_nn(i,j,:), 0.0_real_umphys)
         cf(i,j,:29) = cf_nn(i,j,:)
         cfl(i,j,:29) = cfl_nn(i,j,:)
         qcl(i,j,:29) = qcl_nn(i,j,:)
