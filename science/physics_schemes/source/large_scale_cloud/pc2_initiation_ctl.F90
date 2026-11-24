@@ -73,10 +73,11 @@ use wtrac_pc2_mod,           only: wtrac_pc2_store
 use wtrac_pc2_phase_chg_mod, only: wtrac_pc2_phase_chg
 
 use super_resolution_mod, only: super_resolution
-use interpolation_mod, only: linterpolation, max_interpolation, linterpolation_b, &
+use interpolation_mod, only: n_um, n_ml, linterpolation,                        &
                              conservative_interpolation, mean_preserving_adjust
-use planet_constants_mod,  only: lcrcp
-use log_mod,             only: log_event, LOG_LEVEL_DEBUG, LOG_LEVEL_INFO
+use log_mod,             only: log_event, LOG_LEVEL_INFO
+use ereport_mod,         only: ereport
+use errormessagelength_mod, only: errormessagelength
 implicit none
 
 ! Description:
@@ -244,81 +245,73 @@ type(wtrac_type), intent(in out) :: wtrac(n_wtrac)
 
 ! Local variables
 ! Super res variables
-real(kind=real_umphys), parameter :: qcl_min = 1.0e-10_real_umphys  ! kg/kg
-real(kind=real_umphys), parameter :: cfl_min = 1.0e-3_real_umphys
 ! SR adds sub-grid structure only: fine profiles keep the UM layer means
 logical, parameter :: l_sr_mean_preserve = .true.
-! Diagnose SR liquid cloud from clear sky (PC2 'original' initiation only acts where cfl==0)
-logical, parameter :: l_sr_from_clear = .true.
-! Map SR liquid cloud fraction back with layer max (area-like) instead of layer mean
-logical, parameter :: l_sr_max_cfl = .false.
-real(kind=real_umphys) :: dcfl_k, dqcl_k
 real(kind=real_umphys) ::                                                      &
-  ml_heights(                    1:128       ),                                & 
+  ml_heights(                    1:n_ml      ),                                &
   um_grid(           tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:29        ),                                & 
+                                 1:n_um),                               &
   ! Same shape as r_theta_levels: pc2_initiate needs level 0 (surface)
   ml_grid(           tdims_l%i_start:tdims_l%i_end,                            &
                      tdims_l%j_start:tdims_l%j_end,                            &
-                                 0:128       ),                                & 
+                                 0:n_ml       ),                               &
   rhcrit_nn(         rhc_row_length,                                           &
                      rhc_rows,                                                 &
-                                 1:29        ),                                &
+                                 1:n_um),                               &
   rhcrit_sr(         rhc_row_length,                                           &
                      rhc_rows,                                                 &
-                                 1:128       ),                                &
+                                 1:n_ml       ),                               &
   rhts_nn(           tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:29),                                        &
+                                 1:n_um),                               &
   rhts_sr(           tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:128),                                       &
+                                 1:n_ml),                                      &
   p_nn(              pdims%i_start:pdims%i_end,                                &
                      pdims%j_start:pdims%j_end,                                &
-                                 1:29        ),                                &
+                                 1:n_um),                               &
   p_sr(              pdims%i_start:pdims%i_end,                                &
                      pdims%j_start:pdims%j_end,                                &
-                                 1:128       ),                                &
+                                 1:n_ml       ),                               &
   t_nn(              tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:29         ),                               &
+                                 1:n_um),                               &
   t_sr(              tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:128        ),                               &
+                                 1:n_ml       ),                               &
   q_nn(              tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:29         ),                               &
+                                 1:n_um),                               &
   q_sr(              tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:128        ),                               &
+                                 1:n_ml       ),                               &
   qcl_nn(            tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:29         ),                               &
+                                 1:n_um),                               &
   qcl_sr(            tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:128        ),                               &
-  dqcl(              tdims%i_start:tdims%i_end,                                &
-                     tdims%j_start:tdims%j_end,                                &
-                                 1:29         ),                               &
+                                 1:n_ml       ),                               &
   cf_nn(             tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:29         ),                               &
+                                 1:n_um),                               &
   cf_sr(             tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:128        ),                               &
+                                 1:n_ml       ),                               &
   cfl_nn(            tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:29         ),                               &
+                                 1:n_um),                               &
   cfl_sr(            tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:128        ),                               &
+                                 1:n_ml       ),                               &
   cff_nn(            tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:29         ),                               &
+                                 1:n_um),                               &
   cff_sr(            tdims%i_start:tdims%i_end,                                &
                      tdims%j_start:tdims%j_end,                                &
-                                 1:128        )
+                                 1:n_ml       )
+
+real(kind=real_umphys) :: log_p_nn(n_um), log_p_sr(n_ml)
 
 ! Output increment diagnostics
 real(kind=real_umphys) ::                                                      &
@@ -371,6 +364,7 @@ real(kind=real_umphys) ::                                                      &
 
 integer ::                                                                     &
   i,j,k,iScm,jScm,                                                             &
+  ErrorStatus,                                                                 &
 !       Loop counters
     large_levels,                                                              &
 !       Total no. of sub-levels being processed by cloud scheme.
@@ -382,6 +376,8 @@ integer ::                                                                     &
 
 
 character(len=*), parameter ::  RoutineName = 'PC2_INITIATION_CTL'
+character(len=errormessagelength) :: cmessage
+logical :: remap_coverage(n_um)
 
 integer(kind=jpim), parameter :: zhook_in  = 0
 integer(kind=jpim), parameter :: zhook_out = 1
@@ -591,19 +587,22 @@ else
     call log_event( 'Run super resolution', LOG_LEVEL_INFO )
     DO i=tdims%i_start,tdims%i_end
       DO j=tdims%j_start,tdims%j_end
-        t_nn(i,j,:) = t(i,j,:29)
-        q_nn(i,j,:) = q(i,j,:29)
-        p_nn(i,j,:) = p_theta_levels(i,j,:29)
-        rhcrit_nn(i,j,:) = rhcrit(i,j,:29)
-        cf_nn(i,j,:) = cf(i,j,:29)
-        cff_nn(i,j,:) = cff(i,j,:29)
-        cfl_nn(i,j,:) = cfl(i,j,:29)
-        qcl_nn(i,j,:) = qcl(i,j,:29)
-        rhts_nn(i,j,:) = rhts(i,j,:29)
-        um_grid(i,j,:) = r_theta_levels(i,j,1:29) - r_theta_levels(i,j,0)
+        t_nn(i,j,:) = t(i,j,1:n_um)
+        q_nn(i,j,:) = q(i,j,1:n_um)
+        p_nn(i,j,:) = p_theta_levels(i,j,1:n_um)
+        rhcrit_nn(i,j,:) = rhcrit(i,j,1:n_um)
+        cf_nn(i,j,:) = cf(i,j,1:n_um)
+        cff_nn(i,j,:) = cff(i,j,1:n_um)
+        cfl_nn(i,j,:) = cfl(i,j,1:n_um)
+        qcl_nn(i,j,:) = qcl(i,j,1:n_um)
+        rhts_nn(i,j,:) = rhts(i,j,1:n_um)
+        um_grid(i,j,:) = r_theta_levels(i,j,1:n_um) - r_theta_levels(i,j,0)
         ml_grid(i,j,0)     = r_theta_levels(i,j,0)
-        ml_grid(i,j,1:128) = ml_heights(:) + r_theta_levels(i,j,0)
-        call linterpolation(p_nn(i,j,:),p_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
+        ml_grid(i,j,1:n_ml) = ml_heights(:) + r_theta_levels(i,j,0)
+        log_p_nn = LOG(p_nn(i,j,:))
+        call linterpolation(log_p_nn,log_p_sr,um_grid(i,j,:),ml_heights(:),    &
+                            l_extrapolate=.true.)
+        p_sr(i,j,:) = EXP(log_p_sr)
         call linterpolation(rhcrit_nn(i,j,:),rhcrit_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call linterpolation(cf_nn(i,j,:),cf_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call linterpolation(cff_nn(i,j,:),cff_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
@@ -612,24 +611,27 @@ else
         call linterpolation(rhts_nn(i,j,:),rhts_sr(i,j,:),um_grid(i,j,:),ml_heights(:))
         call super_resolution(t_nn(i,j,:), q_nn(i,j,:), t_sr(i,j,:), q_sr(i,j,:), um_grid(i,j,:),ml_heights(:))
         if (l_sr_mean_preserve) then
-          call mean_preserving_adjust(t_sr(i,j,:),   t_nn(i,j,:),   ml_heights(:), um_grid(i,j,:), .false.)
-          call mean_preserving_adjust(q_sr(i,j,:),   q_nn(i,j,:),   ml_heights(:), um_grid(i,j,:), .true.)
-          call mean_preserving_adjust(qcl_sr(i,j,:), qcl_nn(i,j,:), ml_heights(:), um_grid(i,j,:), .true.)
-          call mean_preserving_adjust(cf_sr(i,j,:),  cf_nn(i,j,:),  ml_heights(:), um_grid(i,j,:), .true.)
-          call mean_preserving_adjust(cfl_sr(i,j,:), cfl_nn(i,j,:), ml_heights(:), um_grid(i,j,:), .true.)
-          call mean_preserving_adjust(cff_sr(i,j,:), cff_nn(i,j,:), ml_heights(:), um_grid(i,j,:), .true.)
-          cf_sr(i,j,:)  = MIN(cf_sr(i,j,:),  1.0_real_umphys)
-          cfl_sr(i,j,:) = MIN(cfl_sr(i,j,:), 1.0_real_umphys)
-          cff_sr(i,j,:) = MIN(cff_sr(i,j,:), 1.0_real_umphys)
+          call mean_preserving_adjust(t_sr(i,j,:), t_nn(i,j,:),                &
+              -p_sr(i,j,:), -p_nn(i,j,:), .false., .false.)
+          call mean_preserving_adjust(q_sr(i,j,:), q_nn(i,j,:),                &
+              -p_sr(i,j,:), -p_nn(i,j,:), .true., .false.)
+          call mean_preserving_adjust(qcl_sr(i,j,:), qcl_nn(i,j,:),            &
+              -p_sr(i,j,:), -p_nn(i,j,:), .true., .false.)
+          call mean_preserving_adjust(cf_sr(i,j,:), cf_nn(i,j,:),              &
+              -p_sr(i,j,:), -p_nn(i,j,:), .true., .false.)
+          call mean_preserving_adjust(cfl_sr(i,j,:), cfl_nn(i,j,:),            &
+              -p_sr(i,j,:), -p_nn(i,j,:), .true., .false.)
+          call mean_preserving_adjust(cff_sr(i,j,:), cff_nn(i,j,:),            &
+              -p_sr(i,j,:), -p_nn(i,j,:), .true., .false.)
         end if
-        if (l_sr_from_clear) then
-          ! Convert to liquid temperature / total water and remove liquid cloud
-          t_sr(i,j,:)   = t_sr(i,j,:) - lcrcp * qcl_sr(i,j,:)
-          q_sr(i,j,:)   = q_sr(i,j,:) + qcl_sr(i,j,:)
-          qcl_sr(i,j,:) = 0.0_real_umphys
-          cfl_sr(i,j,:) = 0.0_real_umphys
-          cf_sr(i,j,:)  = cff_sr(i,j,:)
-        end if
+
+        q_sr(i,j,:)   = MAX(q_sr(i,j,:), 0.0_real_umphys)
+        qcl_sr(i,j,:) = MAX(qcl_sr(i,j,:), 0.0_real_umphys)
+        cfl_sr(i,j,:) = MAX(MIN(cfl_sr(i,j,:), 1.0_real_umphys), 0.0_real_umphys)
+        cff_sr(i,j,:) = MAX(MIN(cff_sr(i,j,:), 1.0_real_umphys), 0.0_real_umphys)
+        cf_sr(i,j,:) = MAX(MIN(cf_sr(i,j,:), 1.0_real_umphys), 0.0_real_umphys)
+        cf_sr(i,j,:) = MIN(MAX(cf_sr(i,j,:), MAX(cfl_sr(i,j,:), cff_sr(i,j,:))), &
+                            MIN(1.0_real_umphys, cfl_sr(i,j,:) + cff_sr(i,j,:)))
       END DO
     END DO
  
@@ -640,41 +642,39 @@ else
     ! New call using ML interpolated values
 
     call pc2_initiate(p_sr,cumulus,rhcrit_sr,                                  &
-     128, rhc_row_length,rhc_rows,zlcl_mixed,ml_grid,                          &
+     n_ml, rhc_row_length,rhc_rows,zlcl_mixed,ml_grid,                         &
      t_sr,cf_sr,cfl_sr,cff_sr,q_sr,qcl_sr,rhts_sr,l_mixing_ratio)
 
     DO i=tdims%i_start,tdims%i_end
       DO j=tdims%j_start,tdims%j_end
-        if (l_sr_max_cfl) then
-          call max_interpolation(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-        else
-          call conservative_interpolation(cfl_sr(i,j,:),cfl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
+        call conservative_interpolation(t_sr(i,j,:), t_nn(i,j,:),             &
+            -p_sr(i,j,:), -p_nn(i,j,:), .false., remap_coverage)
+        if (any(.not. remap_coverage)) then
+          ErrorStatus = 100
+          write(cmessage, '(A,I0,A,I0)')                                      &
+              'High-res remap does not cover all model levels at i=', i,      &
+              ', j=', j
+          call ereport(RoutineName, ErrorStatus, cmessage)
+          cycle
         end if
-        call conservative_interpolation(qcl_sr(i,j,:),qcl_nn(i,j,:),ml_heights(:),um_grid(i,j,:))
-
-        ! SR can only add liquid cloud on top of the UM-level PC2 state
-        DO k = 1, 29
-          dqcl_k = MAX(qcl_nn(i,j,k) - qcl(i,j,k), 0.0_real_umphys)
-          dqcl_k = MIN(dqcl_k, q(i,j,k))
-          dcfl_k = MAX(MIN(cfl_nn(i,j,k), 1.0_real_umphys) - cfl(i,j,k), 0.0_real_umphys)
-
-          qcl(i,j,k) = qcl(i,j,k) + dqcl_k
-          q(i,j,k)   = q(i,j,k)   - dqcl_k
-          t(i,j,k)   = t(i,j,k)   + lcrcp * dqcl_k
-          dqcl(i,j,k) = dqcl_k
-
-          ! No liquid to go with new cloud: don't add it
-          IF (qcl(i,j,k) < qcl_min) dcfl_k = 0.0_real_umphys
-          cfl(i,j,k) = cfl(i,j,k) + dcfl_k
-          ! New liquid but no liquid cloud: give it a minimal cloud fraction
-          IF (dqcl_k > 0.0_real_umphys .AND. cfl(i,j,k) < cfl_min) THEN
-            dcfl_k     = dcfl_k + (cfl_min - cfl(i,j,k))
-            cfl(i,j,k) = cfl_min
-          END IF
-
-          ! Bulk cf must lie between max(cfl,cff) and min(1,cfl+cff)
-          cf(i,j,k) = MIN(cf(i,j,k) + dcfl_k, cfl(i,j,k) + cff(i,j,k), 1.0_real_umphys)
-          cf(i,j,k) = MAX(cf(i,j,k), cfl(i,j,k), cff(i,j,k))
+        call conservative_interpolation(q_sr(i,j,:), q_nn(i,j,:),             &
+            -p_sr(i,j,:), -p_nn(i,j,:), .false.)
+        call conservative_interpolation(qcl_sr(i,j,:), qcl_nn(i,j,:),         &
+            -p_sr(i,j,:), -p_nn(i,j,:), .false.)
+        call conservative_interpolation(cf_sr(i,j,:), cf_nn(i,j,:),           &
+            -p_sr(i,j,:), -p_nn(i,j,:), .false.)
+        call conservative_interpolation(cfl_sr(i,j,:), cfl_nn(i,j,:),         &
+            -p_sr(i,j,:), -p_nn(i,j,:), .false.)
+        ! Replace the native PC2 result where the high-resolution profile exists.
+        DO k = 1, n_um
+          t(i,j,k)   = t_nn(i,j,k)
+          q(i,j,k)   = q_nn(i,j,k)
+          qcl(i,j,k) = qcl_nn(i,j,k)
+          ! High-resolution initiation targets liquid cloud; preserve native ice.
+          cfl(i,j,k) = MAX(MIN(cfl_nn(i,j,k), 1.0_real_umphys),               &
+                           0.0_real_umphys)
+          cf(i,j,k) = MIN(MAX(cf_nn(i,j,k), MAX(cfl(i,j,k), cff(i,j,k))),     &
+                          MIN(1.0_real_umphys, cfl(i,j,k) + cff(i,j,k)))
         END DO
       END DO
     END DO

@@ -17,23 +17,20 @@ CONTAINS
 
 SUBROUTINE super_resolution(temp, qv, temp_sr, qv_sr, um_grid, ml_grid)
 
-USE interpolation_mod, ONLY: linterpolation
+USE interpolation_mod, ONLY: linterpolation, n_um, n_ml
 USE sr_ennuf_mod, ONLY: sr_ennuf
 
 IMPLICIT NONE
 
 INTEGER, PARAMETER :: nc = 2
-INTEGER, PARAMETER :: nzi = 29
-INTEGER, PARAMETER :: nzf = 128
-
-
 REAL(kind=real_umphys) :: stats(4)
 
-REAL(kind=real_umphys), INTENT(IN)    :: temp(nzi), qv(nzi), um_grid(nzi), ml_grid(nzf)
-REAL(kind=real_umphys), INTENT(INOUT) :: temp_sr(nzf), qv_sr(nzf)
+REAL(kind=real_umphys), INTENT(IN)    :: temp(n_um), qv(n_um),                &
+                                         um_grid(n_um), ml_grid(n_ml)
+REAL(kind=real_umphys), INTENT(INOUT) :: temp_sr(n_ml), qv_sr(n_ml)
 
-REAL(kind=real_umphys) :: temp_nn(nzf), qv_nn(nzf)
-REAL(kind=real_umphys) :: x_nn(nc,nzf), y_nn(nc,nzf)
+REAL(kind=real_umphys) :: temp_nn(n_ml), qv_nn(n_ml)
+REAL(kind=real_umphys) :: x_nn(nc,n_ml), y_nn(nc,n_ml)
     
 INTEGER :: i
 
